@@ -29,7 +29,8 @@ export const loginUser = createAsyncThunk(
   async (credentials: { email: string; password: string }, { rejectWithValue }) => {
     try {
       // For demo purposes, we'll use mock authentication
-      if (credentials.email === 'demo@autodq.com' && credentials.password === 'demo') {
+      if ((credentials.email === 'demo@autodq.com' && credentials.password === 'demo') ||
+          (credentials.email === 'admin@autodq.com' && credentials.password === 'password')) {
         const token = 'demo-token-' + Date.now();
         localStorage.setItem('token', token);
         

@@ -1,125 +1,298 @@
-import React from 'react'
+import React, { useState } from 'react'
+import { useAppDispatch, useAppSelector } from '../store/hooks'
+import { loginUser, registerUser } from '../store/slices/authSlice'
 
 const LandingPage: React.FC = () => {
+  const [isLogin, setIsLogin] = useState(true)
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+    confirmPassword: ''
+  })
+  
+  const dispatch = useAppDispatch()
+  const { isLoading, error } = useAppSelector((state) => state.auth)
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    })
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (isLogin) {
+      dispatch(loginUser({
+        email: formData.email,
+        password: formData.password
+      }))
+    } else {
+      if (formData.password !== formData.confirmPassword) {
+        alert('Passwords do not match')
+        return
+      }
+      dispatch(registerUser({
+        email: formData.email,
+        password: formData.password,
+        name: `${formData.firstName} ${formData.lastName}`
+      }))
+    }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      email: '',
+      password: '',
+      firstName: '',
+      lastName: '',
+      confirmPassword: ''
+    })
+  }
+
+  const toggleMode = () => {
+    setIsLogin(!isLogin)
+    resetForm()
+  }
+
   return (
-    <div className="min-h-screen bg-neutral-void relative overflow-hidden">
-      {/* Background Effects */}
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 relative overflow-hidden">
+      {/* Animated Background */}
       <div className="absolute inset-0">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary-500/5 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent-cyan/5 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-3/4 left-1/2 w-64 h-64 bg-cyan-500/10 rounded-full blur-2xl animate-pulse delay-2000"></div>
       </div>
 
-      {/* Navigation */}
-      <nav className="neural-nav">
-        <div className="flex items-center space-x-8">
-          <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-neural-gradient rounded-sm"></div>
-            <span className="font-display font-bold text-xl text-gradient">autoDQ</span>
-          </div>
-          <div className="hidden md:flex items-center space-x-6">
-            <a href="#features" className="neural-nav-item">Features</a>
-            <a href="#demo" className="neural-nav-item">Demo</a>
-            <a href="#pricing" className="neural-nav-item">Pricing</a>
-          </div>
-          <div className="flex items-center space-x-4">
-            <button className="neural-btn-ghost">Enter</button>
-          </div>
-        </div>
-      </nav>
-
-      {/* Hero Section */}
-      <main className="relative z-10 flex items-center justify-center min-h-screen px-6">
-        <div className="text-center max-w-4xl mx-auto">
-          {/* Main Heading */}
-          <div className="mb-8 neural-entrance">
-            <h1 className="text-6xl md:text-7xl font-display font-bold mb-6">
-              <span className="neural-heading">INTELLIGENT DATA</span>
-              <br />
-              <span className="neural-heading">QUALITY AUTOMATION</span>
-            </h1>
-            <p className="text-xl md:text-2xl text-neutral-stardust max-w-2xl mx-auto leading-relaxed">
-              Monitor • Analyze • Predict • Optimize
-              <br />
-              <span className="text-lg opacity-80">
-                The future of data quality is autonomous
-              </span>
-            </p>
-          </div>
-
-          {/* CTA Button */}
-          <div className="mb-16 neural-entrance" style={{ animationDelay: '0.2s' }}>
-            <button className="neural-btn-primary text-lg px-12 py-4 neural-glow">
-              Initialize System
-            </button>
-          </div>
-
-          {/* Feature Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {[
-              {
-                icon: '◆',
-                title: 'Real-time',
-                subtitle: 'Monitoring',
-                description: 'Continuous surveillance of data streams with neural pattern recognition',
-                delay: '0.4s'
-              },
-              {
-                icon: '⚡',
-                title: 'Predictive',
-                subtitle: 'Analytics',
-                description: 'AI-powered forecasting prevents quality issues before they occur',
-                delay: '0.6s'
-              },
-              {
-                icon: '🌟',
-                title: 'Autonomous',
-                subtitle: 'Correction',
-                description: 'Self-healing systems automatically resolve detected anomalies',
-                delay: '0.8s'
-              }
-            ].map((feature, index) => (
-              <div 
-                key={index}
-                className="neural-card neural-float p-8 text-center neural-entrance"
-                style={{ animationDelay: feature.delay }}
-              >
-                <div className="text-4xl mb-4 text-accent-cyan">{feature.icon}</div>
-                <h3 className="text-xl font-semibold text-neutral-moonlight mb-2">
-                  {feature.title}
-                </h3>
-                <h4 className="text-lg text-primary-400 mb-4">{feature.subtitle}</h4>
-                <p className="text-neutral-stardust text-sm leading-relaxed">
-                  {feature.description}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          {/* Status Line */}
-          <div className="mt-16 neural-entrance" style={{ animationDelay: '1s' }}>
-            <div className="flex justify-center items-center space-x-8 text-sm text-neutral-stardust">
-              <span className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-accent-green rounded-full animate-pulse"></div>
-                <span>Connected to Future of Data</span>
-              </span>
-            </div>
-          </div>
-        </div>
-      </main>
-
-      {/* Floating Particles */}
+      {/* Floating particles */}
       <div className="absolute inset-0 pointer-events-none">
-        {[...Array(20)].map((_, i) => (
+        {[...Array(50)].map((_, i) => (
           <div
             key={i}
-            className="absolute w-1 h-1 bg-primary-400/20 rounded-full"
+            className="absolute w-1 h-1 bg-blue-400/30 rounded-full animate-ping"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
               animationDelay: `${Math.random() * 3}s`,
+              animationDuration: `${2 + Math.random() * 2}s`
             }}
-          ></div>
+          />
         ))}
+      </div>
+
+      <div className="relative z-10 flex min-h-screen">
+        {/* Left Side - Hero Section */}
+        <div className="flex-1 flex items-center justify-center p-8 lg:p-16">
+          <div className="max-w-2xl text-center lg:text-left">
+            {/* Logo */}
+            <div className="flex items-center justify-center lg:justify-start mb-8">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg mr-3 flex items-center justify-center">
+                <span className="text-white font-bold text-xl">⚡</span>
+              </div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                autoDQ
+              </h1>
+            </div>
+
+            {/* Main Heading */}
+            <h2 className="text-4xl lg:text-6xl font-bold text-white mb-6 leading-tight">
+              Intelligent
+              <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent"> Data Quality</span>
+              <br />
+              Monitoring
+            </h2>
+
+            {/* Description */}
+            <p className="text-xl text-gray-300 mb-8 leading-relaxed">
+              Automate your data quality monitoring with AI-powered insights. 
+              Monitor, analyze, and optimize your data warehouse quality in real-time.
+            </p>
+
+            {/* Features */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+              {[
+                { icon: '🔍', title: 'Real-time Monitoring', desc: 'Continuous data surveillance' },
+                { icon: '📊', title: 'Smart Analytics', desc: 'AI-powered insights' },
+                { icon: '🔔', title: 'Intelligent Alerts', desc: 'Proactive notifications' },
+                { icon: '⚡', title: 'Multi-Source Support', desc: 'PostgreSQL, MySQL, Redshift' }
+              ].map((feature, index) => (
+                <div key={index} className="flex items-start space-x-3 p-4 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
+                  <span className="text-2xl">{feature.icon}</span>
+                  <div>
+                    <h3 className="text-white font-semibold">{feature.title}</h3>
+                    <p className="text-gray-400 text-sm">{feature.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Stats */}
+            <div className="flex justify-center lg:justify-start space-x-8 text-center">
+              <div>
+                <div className="text-2xl font-bold text-blue-400">99.9%</div>
+                <div className="text-gray-400 text-sm">Uptime</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-purple-400">24/7</div>
+                <div className="text-gray-400 text-sm">Monitoring</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-cyan-400">Real-time</div>
+                <div className="text-gray-400 text-sm">Alerts</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side - Auth Form */}
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="w-full max-w-md">
+            <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 p-8 shadow-2xl">
+              {/* Form Header */}
+              <div className="text-center mb-8">
+                <h3 className="text-2xl font-bold text-white mb-2">
+                  {isLogin ? 'Welcome Back' : 'Join autoDQ'}
+                </h3>
+                <p className="text-gray-300">
+                  {isLogin ? 'Sign in to your account' : 'Create your account'}
+                </p>
+              </div>
+
+              {/* Auth Form */}
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {!isLogin && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="firstName" className="block text-sm font-medium text-gray-300 mb-2">
+                        First Name
+                      </label>
+                      <input
+                        type="text"
+                        id="firstName"
+                        name="firstName"
+                        value={formData.firstName}
+                        onChange={handleInputChange}
+                        required={!isLogin}
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        placeholder="John"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="lastName" className="block text-sm font-medium text-gray-300 mb-2">
+                        Last Name
+                      </label>
+                      <input
+                        type="text"
+                        id="lastName"
+                        name="lastName"
+                        value={formData.lastName}
+                        onChange={handleInputChange}
+                        required={!isLogin}
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        placeholder="Doe"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    placeholder="john@example.com"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    placeholder="••••••••"
+                  />
+                </div>
+
+                {!isLogin && (
+                  <div>
+                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
+                      Confirm Password
+                    </label>
+                    <input
+                      type="password"
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleInputChange}
+                      required={!isLogin}
+                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                )}
+
+                {error && (
+                  <div className="p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-300 text-sm">
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <div className="flex items-center justify-center">
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Processing...
+                    </div>
+                  ) : (
+                    isLogin ? 'Sign In' : 'Create Account'
+                  )}
+                </button>
+              </form>
+
+              {/* Toggle Mode */}
+              <div className="mt-6 text-center">
+                <p className="text-gray-300">
+                  {isLogin ? "Don't have an account?" : "Already have an account?"}
+                  <button
+                    onClick={toggleMode}
+                    className="ml-2 text-blue-400 hover:text-blue-300 font-semibold transition-colors"
+                  >
+                    {isLogin ? 'Sign Up' : 'Sign In'}
+                  </button>
+                </p>
+              </div>
+
+              {/* Demo Account */}
+              <div className="mt-4 p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
+                <p className="text-yellow-300 text-xs text-center">
+                  <strong>Demo:</strong> demo@autodq.com / demo<br />
+                  <strong>Or:</strong> admin@autodq.com / password
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
