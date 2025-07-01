@@ -83,64 +83,70 @@ const LandingPage: React.FC = () => {
         ))}
       </div>
 
-      <div className="relative z-10 flex min-h-screen">
+      {/* Main Container - Split Screen Layout */}
+      <div className="relative z-10 min-h-screen lg:flex">
         {/* Left Side - Hero Section */}
-        <div className="flex-1 flex items-center justify-center p-8 lg:p-16">
-          <div className="max-w-2xl text-center lg:text-left">
+        <div className="flex-1 flex items-center justify-center p-8 lg:p-16 min-h-screen lg:min-h-0">
+          <div className="max-w-2xl w-full">
             {/* Logo */}
-            <div className="flex items-center justify-center lg:justify-start mb-8">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg mr-3 flex items-center justify-center">
-                <span className="text-white font-bold text-xl">⚡</span>
+            <div className="flex items-center mb-8 animate-fade-in">
+              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl mr-4 flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold text-2xl">⚡</span>
               </div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                 autoDQ
               </h1>
             </div>
 
             {/* Main Heading */}
-            <h2 className="text-4xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-              Intelligent
-              <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent"> Data Quality</span>
-              <br />
-              Monitoring
-            </h2>
+            <div className="mb-8 animate-fade-in-up">
+              <h2 className="text-4xl sm:text-5xl lg:text-7xl font-bold text-white mb-6 leading-tight">
+                Intelligent
+                <br />
+                <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                  Data Quality
+                </span>
+                <br />
+                Monitoring
+              </h2>
 
-            {/* Description */}
-            <p className="text-xl text-gray-300 mb-8 leading-relaxed">
-              Automate your data quality monitoring with AI-powered insights. 
-              Monitor, analyze, and optimize your data warehouse quality in real-time.
-            </p>
+              {/* Description */}
+              <p className="text-lg lg:text-xl text-gray-300 mb-8 leading-relaxed">
+                Automate your data quality monitoring with AI-powered insights. 
+                Monitor, analyze, and optimize your data warehouse quality in real-time.
+              </p>
+            </div>
 
-            {/* Features */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+            {/* Features Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 animate-fade-in-up delay-200">
               {[
                 { icon: '🔍', title: 'Real-time Monitoring', desc: 'Continuous data surveillance' },
                 { icon: '📊', title: 'Smart Analytics', desc: 'AI-powered insights' },
                 { icon: '🔔', title: 'Intelligent Alerts', desc: 'Proactive notifications' },
                 { icon: '⚡', title: 'Multi-Source Support', desc: 'PostgreSQL, MySQL, Redshift' }
               ].map((feature, index) => (
-                <div key={index} className="flex items-start space-x-3 p-4 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
+                <div key={index} className="flex items-start space-x-3 p-4 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all duration-300">
                   <span className="text-2xl">{feature.icon}</span>
                   <div>
-                    <h3 className="text-white font-semibold">{feature.title}</h3>
-                    <p className="text-gray-400 text-sm">{feature.desc}</p>
+                    <h3 className="text-white font-semibold text-sm">{feature.title}</h3>
+                    <p className="text-gray-400 text-xs">{feature.desc}</p>
                   </div>
                 </div>
               ))}
             </div>
 
             {/* Stats */}
-            <div className="flex justify-center lg:justify-start space-x-8 text-center">
-              <div>
-                <div className="text-2xl font-bold text-blue-400">99.9%</div>
+            <div className="flex justify-center sm:justify-start space-x-8 animate-fade-in-up delay-300">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-blue-400">99.9%</div>
                 <div className="text-gray-400 text-sm">Uptime</div>
               </div>
-              <div>
-                <div className="text-2xl font-bold text-purple-400">24/7</div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-purple-400">24/7</div>
                 <div className="text-gray-400 text-sm">Monitoring</div>
               </div>
-              <div>
-                <div className="text-2xl font-bold text-cyan-400">Real-time</div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-cyan-400">Real-time</div>
                 <div className="text-gray-400 text-sm">Alerts</div>
               </div>
             </div>
@@ -148,12 +154,12 @@ const LandingPage: React.FC = () => {
         </div>
 
         {/* Right Side - Auth Form */}
-        <div className="flex-1 flex items-center justify-center p-8">
+        <div className="flex-1 flex items-center justify-center p-8 lg:min-h-screen">
           <div className="w-full max-w-md">
-            <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 p-8 shadow-2xl">
+            <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-8 shadow-2xl animate-fade-in-right">
               {/* Form Header */}
               <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold text-white mb-2">
+                <h3 className="text-3xl font-bold text-white mb-2">
                   {isLogin ? 'Welcome Back' : 'Join autoDQ'}
                 </h3>
                 <p className="text-gray-300">
@@ -257,7 +263,7 @@ const LandingPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105"
                 >
                   {isLoading ? (
                     <div className="flex items-center justify-center">
