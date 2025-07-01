@@ -1,382 +1,60 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Global styles for the autoDQ application */
 
-/* Custom CSS Variables for Dynamic Theming */
-:root {
-  --neural-primary: #0066ff;
-  --neural-accent: #00d4ff;
-  --neural-success: #00ff88;
-  --neural-warning: #ff6b00;
-  --neural-error: #ff0055;
-  --neural-void: #000000;
-  --neural-dark-matter: #0f0f14;
-  --neural-quantum: #1a1a24;
-  --neural-nebula: #2a2a3a;
-  --neural-stardust: #8892b0;
-  --neural-moonlight: #ccd6f6;
-  --neural-supernova: #ffffff;
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-/* Base Styles */
-@layer base {
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-
-  html {
-    scroll-behavior: smooth;
-  }
-
-  body {
-    font-family: 'Inter', system-ui, sans-serif;
-    background: var(--neural-void);
-    color: var(--neural-moonlight);
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  /* Custom Scrollbar */
-  ::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: var(--neural-dark-matter);
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: var(--neural-nebula);
-    border-radius: 4px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: var(--neural-stardust);
-  }
-
-  /* Selection */
-  ::selection {
-    background: rgba(0, 102, 255, 0.3);
-    color: var(--neural-supernova);
-  }
+html {
+  scroll-behavior: smooth;
 }
 
-/* Component Layer */
-@layer components {
-  /* Neural Button */
-  .neural-btn {
-    @apply inline-flex items-center justify-center px-6 py-3 text-sm font-medium rounded-neural;
-    @apply transition-all duration-200 ease-out;
-    @apply focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent;
-    @apply disabled:opacity-50 disabled:cursor-not-allowed;
-  }
-
-  .neural-btn-primary {
-    @apply neural-btn bg-neural-gradient text-white border border-primary-400/30;
-    @apply hover:scale-[1.02] hover:shadow-glow focus:ring-primary-500;
-    box-shadow: 
-      0 0 20px rgba(0, 102, 255, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  }
-
-  .neural-btn-secondary {
-    @apply neural-btn bg-transparent text-primary-400 border border-primary-400/50;
-    @apply hover:bg-primary-400/10 hover:border-primary-400 hover:shadow-glow;
-    @apply focus:ring-primary-500;
-  }
-
-  .neural-btn-ghost {
-    @apply neural-btn bg-transparent text-neutral-stardust border-transparent;
-    @apply hover:text-neutral-moonlight hover:bg-neutral-quantum/50;
-    @apply focus:ring-neutral-stardust;
-  }
-
-  /* Neural Card */
-  .neural-card {
-    @apply bg-card-gradient border border-neutral-nebula/50 rounded-neural p-6;
-    @apply backdrop-blur-neural shadow-neural;
-    @apply transition-all duration-300 ease-out;
-  }
-
-  .neural-card:hover {
-    @apply -translate-y-1 border-accent-cyan/30 shadow-neural-hover;
-  }
-
-  .neural-card::before {
-    content: '';
-    @apply absolute top-0 left-0 right-0 h-px;
-    background: linear-gradient(90deg, transparent, #00d4ff, transparent);
-    opacity: 0.6;
-  }
-
-  /* Neural Input */
-  .neural-input {
-    @apply w-full px-4 py-3 bg-neutral-quantum/80 border border-neutral-nebula/80;
-    @apply rounded-lg text-neutral-moonlight placeholder-neutral-stardust;
-    @apply transition-all duration-300 ease-out;
-    @apply focus:outline-none focus:border-primary-500 focus:bg-neutral-quantum;
-    @apply focus:shadow-[0_0_0_3px_rgba(0,102,255,0.1),0_0_20px_rgba(0,102,255,0.2)];
-  }
-
-  .neural-input:focus {
-    background: rgba(26, 26, 36, 1);
-  }
-
-  /* Status Indicators */
-  .status-indicator {
-    @apply inline-flex items-center gap-2 px-3 py-1 rounded-pill text-xs font-medium uppercase tracking-wide;
-  }
-
-  .status-passed {
-    @apply status-indicator bg-accent-green/10 text-accent-green border border-accent-green/30;
-    @apply animate-pulse-green;
-  }
-
-  .status-failed {
-    @apply status-indicator bg-accent-red/10 text-accent-red border border-accent-red/30;
-    @apply animate-pulse-red;
-  }
-
-  .status-warning {
-    @apply status-indicator bg-accent-orange/10 text-accent-orange border border-accent-orange/30;
-  }
-
-  .status-running {
-    @apply status-indicator bg-primary-500/10 text-primary-400 border border-primary-400/30;
-    @apply animate-pulse-blue;
-  }
-
-  .status-stopped {
-    @apply status-indicator bg-neutral-nebula/10 text-neutral-stardust border border-neutral-nebula/30;
-  }
-
-  /* Neural Navigation */
-  .neural-nav {
-    @apply fixed top-6 left-1/2 transform -translate-x-1/2 z-50;
-    @apply bg-neutral-dark-matter/95 border border-neutral-nebula/60 rounded-pill px-6 py-2;
-    @apply backdrop-blur-neural shadow-neural;
-  }
-
-  .neural-nav-item {
-    @apply px-4 py-2 rounded-3xl text-neutral-stardust transition-all duration-200;
-    @apply hover:text-neutral-moonlight hover:bg-primary-500/10;
-    @apply focus:outline-none focus:ring-2 focus:ring-primary-500/50;
-  }
-
-  .neural-nav-item.active {
-    @apply text-neutral-moonlight bg-primary-500/10;
-    box-shadow: inset 0 0 10px rgba(0, 102, 255, 0.2);
-  }
-
-  /* Data Visualization */
-  .neural-chart {
-    @apply bg-card-gradient border border-neutral-nebula/60 rounded-neural p-6;
-    @apply relative overflow-hidden;
-  }
-
-  .neural-chart::before {
-    content: '';
-    @apply absolute inset-0 pointer-events-none;
-    background: 
-      radial-gradient(circle at 20% 50%, rgba(0, 102, 255, 0.03) 0%, transparent 50%),
-      radial-gradient(circle at 80% 20%, rgba(0, 212, 255, 0.03) 0%, transparent 50%);
-  }
-
-  /* Loading States */
-  .neural-loading {
-    @apply relative overflow-hidden;
-  }
-
-  .neural-loading::after {
-    content: '';
-    @apply absolute top-0 left-0 w-full h-full pointer-events-none;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(0, 212, 255, 0.2),
-      transparent
-    );
-    animation: shimmer 1.5s infinite;
-    transform: translateX(-100%);
-  }
-
-  /* Progress Bars */
-  .neural-progress {
-    @apply relative h-1 bg-neutral-nebula/80 rounded-full overflow-hidden;
-  }
-
-  .neural-progress-bar {
-    @apply h-full bg-neural-gradient rounded-full relative;
-    @apply transition-all duration-300 ease-out;
-  }
-
-  .neural-progress-bar::after {
-    content: '';
-    @apply absolute inset-0;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.3),
-      transparent
-    );
-    animation: shimmer 2s infinite;
-  }
-
-  /* Floating Elements */
-  .neural-float {
-    @apply animate-float;
-  }
-
-  /* Glow Effects */
-  .neural-glow {
-    @apply animate-glow;
-  }
-
-  /* Typography */
-  .neural-heading {
-    @apply font-display font-bold bg-gradient-to-r from-neutral-moonlight to-accent-cyan;
-    @apply bg-clip-text text-transparent;
-    text-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
-  }
-
-  .neural-text {
-    @apply font-body text-neutral-stardust;
-  }
-
-  .neural-code {
-    @apply font-mono text-accent-cyan bg-neutral-quantum/80 px-2 py-1;
-    @apply rounded border border-neutral-nebula/60 text-sm;
-  }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: #000000;
+  color: #ffffff;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Utility Layer */
-@layer utilities {
-  .text-gradient {
-    @apply bg-gradient-to-r from-primary-400 to-accent-cyan bg-clip-text text-transparent;
-  }
-
-  .border-gradient {
-    border-image: linear-gradient(135deg, #0066ff, #00d4ff) 1;
-  }
-
-  .backdrop-neural {
-    backdrop-filter: blur(20px);
-  }
-
-  /* Custom animations */
-  .neural-entrance {
-    animation: neural-fade-in 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  }
-
-  @keyframes neural-fade-in {
-    from {
-      opacity: 0;
-      transform: translateY(20px) scale(0.95);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
-
-  .neural-slide-in {
-    animation: neural-slide-in 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  }
-
-  @keyframes neural-slide-in {
-    from {
-      opacity: 0;
-      transform: translateX(-30px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-
-  /* Landing Page Animations */
-  @keyframes fade-in {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes fade-in-up {
-    from {
-      opacity: 0;
-      transform: translateY(30px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes fade-in-right {
-    from {
-      opacity: 0;
-      transform: translateX(30px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-
-  .animate-fade-in {
-    animation: fade-in 0.8s ease-out forwards;
-  }
-
-  .animate-fade-in-up {
-    animation: fade-in-up 0.8s ease-out forwards;
-  }
-
-  .animate-fade-in-right {
-    animation: fade-in-right 0.8s ease-out forwards;
-  }
-
-  .delay-200 {
-    animation-delay: 0.2s;
-  }
-
-  .delay-300 {
-    animation-delay: 0.3s;
-  }
-
-  .delay-400 {
-    animation-delay: 0.4s;
-  }
-
-  .delay-500 {
-    animation-delay: 0.5s;
-  }
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
 }
 
-/* Dark mode adjustments (if needed) */
-@media (prefers-color-scheme: dark) {
-  /* Already dark by default */
+::-webkit-scrollbar-track {
+  background: #0f0f14;
 }
 
-/* Responsive Improvements */
-@media (max-width: 1024px) {
-  .flex-1 {
-    flex-basis: 100%;
-  }
+::-webkit-scrollbar-thumb {
+  background: #2a2a3a;
+  border-radius: 4px;
 }
 
-@media (max-width: 768px) {
-  .flex {
-    flex-direction: column;
-  }
+::-webkit-scrollbar-thumb:hover {
+  background: #8892b0;
+}
+
+/* Selection */
+::selection {
+  background: rgba(0, 102, 255, 0.3);
+  color: #ffffff;
+}
+
+/* Focus styles */
+button:focus,
+input:focus,
+textarea:focus {
+  outline: 2px solid #22d3ee;
+  outline-offset: 2px;
+}
+
+/* Smooth transitions for interactive elements */
+button,
+input,
+a {
+  transition: all 0.2s ease-in-out;
 }

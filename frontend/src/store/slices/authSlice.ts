@@ -10,7 +10,7 @@ interface ExtendedAuthState extends AuthState {
 const initialState: ExtendedAuthState = {
   isAuthenticated: false,
   user: null,
-  token: localStorage.getItem('token'),
+  token: null, // Force no token initially
   isLoading: false,
   error: undefined,
 }

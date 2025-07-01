@@ -1,6 +1,484 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import styled, { keyframes, createGlobalStyle } from 'styled-components'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { loginUser, registerUser } from '../store/slices/authSlice'
+
+// Global styles for animations
+const GlobalStyle = createGlobalStyle`
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+`
+
+// Animations
+const float = keyframes`
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  25% { transform: translateY(-5px) translateX(2px); }
+  50% { transform: translateY(-10px) translateX(-2px); }
+  75% { transform: translateY(-5px) translateX(1px); }
+`
+
+const pulseGlow = keyframes`
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+`
+
+const typewriter = keyframes`
+  from { width: 0; }
+  to { width: 100%; }
+`
+
+const glitch = keyframes`
+  0%, 100% { transform: translate(0); }
+  20% { transform: translate(-1px, 1px); }
+  40% { transform: translate(-1px, -1px); }
+  60% { transform: translate(1px, 1px); }
+  80% { transform: translate(1px, -1px); }
+`
+
+const gradientShift = keyframes`
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+`
+
+// Styled Components
+const Container = styled.div`
+  min-height: 100vh;
+  background: black;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  @media (min-width: 1024px) {
+    flex-direction: row;
+  }
+`
+
+const BackgroundLayer = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+`
+
+const GridPattern = styled.div`
+  position: absolute;
+  inset: 0;
+  opacity: 0.2;
+  background-image: 
+    linear-gradient(rgba(6, 182, 212, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6, 182, 212, 0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+  width: 100%;
+  height: 100%;
+`
+
+const Particle = styled.div<{ x: number; y: number; size: number; delay: number; duration: number }>`
+  position: absolute;
+  border-radius: 50%;
+  background: #22d3ee;
+  opacity: 0.3;
+  animation: ${float} ${props => props.duration}s ease-in-out infinite;
+  animation-delay: ${props => props.delay}s;
+  left: ${props => props.x}%;
+  top: ${props => props.y}%;
+  width: ${props => props.size}px;
+  height: ${props => props.size}px;
+`
+
+const GradientOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), transparent, rgba(147, 51, 234, 0.1));
+`
+
+const MainContent = styled.div`
+  position: relative;
+  z-index: 10;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+
+  @media (min-width: 1024px) {
+    flex-direction: row;
+  }
+`
+
+const HeroSection = styled.div`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, rgba(31, 41, 55, 0.8), rgba(0, 0, 0, 0.8));
+
+  @media (min-width: 1024px) {
+    padding: 4rem;
+  }
+`
+
+const HeroContent = styled.div`
+  max-width: 40rem;
+  text-align: center;
+
+  @media (min-width: 1024px) {
+    text-align: left;
+  }
+`
+
+const LogoSection = styled.div`
+  margin-bottom: 2rem;
+`
+
+const LogoContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+
+  @media (min-width: 1024px) {
+    justify-content: flex-start;
+  }
+`
+
+const LogoIcon = styled.div`
+  width: 4rem;
+  height: 4rem;
+  margin-right: 1rem;
+  position: relative;
+`
+
+const LogoIconBackground = styled.div`
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, #22d3ee, #3b82f6);
+  border-radius: 50%;
+  animation: ${pulseGlow} 2s ease-in-out infinite;
+`
+
+const LogoIconInner = styled.div`
+  position: absolute;
+  inset: 0.5rem;
+  background: black;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #22d3ee;
+`
+
+const MainTitle = styled.h1`
+  font-size: 3.75rem;
+  font-weight: bold;
+  background: linear-gradient(to right, #22d3ee, #3b82f6, #a855f7);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 400% 400%;
+  animation: ${gradientShift} 3s ease-in-out infinite;
+`
+
+const SubTitle = styled.p`
+  color: #22d3ee;
+  font-size: 1.125rem;
+  font-family: 'JetBrains Mono', monospace;
+  overflow: hidden;
+  white-space: nowrap;
+  animation: ${typewriter} 2s steps(30, end);
+`
+
+const Headline = styled.h2`
+  font-size: 3rem;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 1.5rem;
+  line-height: 1.2;
+
+  @media (min-width: 1024px) {
+    font-size: 4rem;
+  }
+`
+
+const HeadlinePrefix = styled.span`
+  display: block;
+  font-size: 1.25rem;
+  color: #22d3ee;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 0.5rem;
+`
+
+const HeadlineGradient = styled.span`
+  background: linear-gradient(to right, #22d3ee, #a855f7);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  position: relative;
+  
+  &:hover {
+    animation: ${glitch} 0.3s ease-in-out;
+  }
+`
+
+const Description = styled.p`
+  font-size: 1.25rem;
+  color: #d1d5db;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+`
+
+const ClassifiedTag = styled.span`
+  color: #22d3ee;
+`
+
+const FeatureGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+
+  @media (min-width: 1024px) {
+    grid-template-columns: 1fr 1fr;
+  }
+`
+
+const FeatureCard = styled.div<{ borderColor: string; hoverColor: string }>`
+  padding: 1rem;
+  background: rgba(31, 41, 55, 0.5);
+  border: 1px solid ${props => props.borderColor}4D;
+  border-radius: 0.5rem;
+  transition: all 0.3s duration;
+  
+  &:hover {
+    border-color: ${props => props.hoverColor};
+    background: ${props => props.hoverColor}1A;
+  }
+`
+
+const FeatureTitle = styled.h3<{ color: string }>`
+  color: ${props => props.color};
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`
+
+const FeatureDescription = styled.p`
+  color: #9ca3af;
+  font-size: 0.875rem;
+`
+
+const StatsSection = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  text-align: center;
+
+  @media (min-width: 1024px) {
+    justify-content: flex-start;
+  }
+`
+
+const StatItem = styled.div`
+  text-align: center;
+`
+
+const StatValue = styled.div<{ color: string }>`
+  font-size: 1.875rem;
+  font-weight: bold;
+  color: ${props => props.color};
+  margin-bottom: 0.25rem;
+`
+
+const StatLabel = styled.div`
+  color: #9ca3af;
+  font-size: 0.875rem;
+`
+
+const AuthSection = styled.div`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, rgba(55, 65, 81, 0.8), rgba(31, 41, 55, 0.8));
+
+  @media (min-width: 1024px) {
+    width: 24rem;
+  }
+`
+
+const TerminalWindow = styled.div`
+  width: 100%;
+  max-width: 28rem;
+  background: rgba(31, 41, 55, 0.9);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(20px);
+`
+
+const TerminalHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: rgba(55, 65, 81, 0.5);
+  border-bottom: 1px solid rgba(6, 182, 212, 0.3);
+`
+
+const TerminalButtons = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`
+
+const TerminalButton = styled.div<{ color: string }>`
+  width: 0.75rem;
+  height: 0.75rem;
+  background: ${props => props.color};
+  border-radius: 50%;
+`
+
+const TerminalTitle = styled.div`
+  color: #22d3ee;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875rem;
+`
+
+const TerminalContent = styled.div`
+  padding: 1.5rem;
+`
+
+const TerminalPrompt = styled.div`
+  margin-bottom: 1.5rem;
+`
+
+const PromptLine = styled.div<{ color: string }>`
+  color: ${props => props.color};
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+`
+
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`
+
+const InputRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+`
+
+const InputGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+`
+
+const Label = styled.label`
+  color: #22d3ee;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  margin-bottom: 0.25rem;
+`
+
+const Input = styled.input`
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  border-radius: 0.25rem;
+  color: white;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875rem;
+  transition: all 0.3s;
+  
+  &:focus {
+    outline: none;
+    border-color: #22d3ee;
+    background: rgba(6, 182, 212, 0.1);
+  }
+  
+  &::placeholder {
+    color: #6b7280;
+  }
+`
+
+const ErrorMessage = styled.div`
+  padding: 0.75rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  border-radius: 0.25rem;
+  color: #fca5a5;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875rem;
+`
+
+const SubmitButton = styled.button`
+  width: 100%;
+  padding: 0.75rem;
+  background: linear-gradient(to right, #06b6d4, #2563eb);
+  color: black;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: bold;
+  border: none;
+  border-radius: 0.25rem;
+  transition: all 0.3s;
+  cursor: pointer;
+  
+  &:hover:not(:disabled) {
+    background: linear-gradient(to right, #22d3ee, #3b82f6);
+    transform: scale(1.02);
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+`
+
+const ToggleButton = styled.button`
+  background: none;
+  border: none;
+  color: #22d3ee;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: color 0.3s;
+  
+  &:hover {
+    color: #67e8f9;
+  }
+`
+
+const DemoInfo = styled.div`
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #4b5563;
+`
+
+const DemoTitle = styled.div`
+  color: #10b981;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  margin-bottom: 0.5rem;
+`
+
+const DemoCredentials = styled.div`
+  color: #9ca3af;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+`
 
 const LandingPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true)
@@ -14,6 +492,22 @@ const LandingPage: React.FC = () => {
   
   const dispatch = useAppDispatch()
   const { isLoading, error } = useAppSelector((state) => state.auth)
+
+  // Animated particles effect
+  const [particles, setParticles] = useState<Array<{id: number, x: number, y: number, size: number, delay: number, duration: number}>>([])
+
+  useEffect(() => {
+    // Generate particles for background animation
+    const newParticles = Array.from({ length: 50 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: Math.random() * 3 + 1,
+      delay: i * 0.1,
+      duration: 3 + Math.random() * 4
+    }))
+    setParticles(newParticles)
+  }, [])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -59,248 +553,241 @@ const LandingPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 relative overflow-hidden">
-      {/* Animated Background */}
-      <div className="absolute inset-0">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-3/4 left-1/2 w-64 h-64 bg-cyan-500/10 rounded-full blur-2xl animate-pulse delay-2000"></div>
-      </div>
+    <>
+      <GlobalStyle />
+      <Container>
+        {/* Animated Background */}
+        <BackgroundLayer>
+          <GridPattern />
+          
+          {/* Animated Particles */}
+          {particles.map((particle) => (
+            <Particle
+              key={particle.id}
+              x={particle.x}
+              y={particle.y}
+              size={particle.size}
+              delay={particle.delay}
+              duration={particle.duration}
+            />
+          ))}
 
-      {/* Floating particles */}
-      <div className="absolute inset-0 pointer-events-none">
-        {[...Array(50)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-blue-400/30 rounded-full animate-ping"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${2 + Math.random() * 2}s`
-            }}
-          />
-        ))}
-      </div>
+          <GradientOverlay />
+        </BackgroundLayer>
 
-      {/* Main Container - Split Screen Layout */}
-      <div className="relative z-10 min-h-screen lg:flex">
-        {/* Left Side - Hero Section */}
-        <div className="flex-1 flex items-center justify-center p-8 lg:p-16 min-h-screen lg:min-h-0">
-          <div className="max-w-2xl w-full">
-            {/* Logo */}
-            <div className="flex items-center mb-8 animate-fade-in">
-              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl mr-4 flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-2xl">⚡</span>
-              </div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                autoDQ
-              </h1>
-            </div>
+        {/* Main Content */}
+        <MainContent>
+          {/* Left Side - Hero Section */}
+          <HeroSection>
+            <HeroContent>
+              {/* Logo & Brand */}
+              <LogoSection>
+                <LogoContainer>
+                  <LogoIcon>
+                    <LogoIconBackground />
+                    <LogoIconInner>⚡</LogoIconInner>
+                  </LogoIcon>
+                  <MainTitle>autoDQ</MainTitle>
+                </LogoContainer>
+                
+                <SubTitle>
+                  &gt; INITIALIZING_DATA_QUALITY_PROTOCOL...
+                </SubTitle>
+              </LogoSection>
 
-            {/* Main Heading */}
-            <div className="mb-8 animate-fade-in-up">
-              <h2 className="text-4xl sm:text-5xl lg:text-7xl font-bold text-white mb-6 leading-tight">
+              {/* Main Headline */}
+              <Headline>
+                <HeadlinePrefix>NEXT-GEN</HeadlinePrefix>
                 Intelligent
                 <br />
-                <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  Data Quality
-                </span>
+                <HeadlineGradient>Data Quality</HeadlineGradient>
                 <br />
                 Monitoring
-              </h2>
+              </Headline>
 
               {/* Description */}
-              <p className="text-lg lg:text-xl text-gray-300 mb-8 leading-relaxed">
-                Automate your data quality monitoring with AI-powered insights. 
-                Monitor, analyze, and optimize your data warehouse quality in real-time.
-              </p>
-            </div>
+              <Description>
+                <ClassifiedTag>[CLASSIFIED]</ClassifiedTag> Advanced AI-powered monitoring system for 
+                real-time data warehouse quality analysis. Deploy autonomous quality 
+                protocols with quantum-speed insights.
+              </Description>
 
-            {/* Features Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 animate-fade-in-up delay-200">
-              {[
-                { icon: '🔍', title: 'Real-time Monitoring', desc: 'Continuous data surveillance' },
-                { icon: '📊', title: 'Smart Analytics', desc: 'AI-powered insights' },
-                { icon: '🔔', title: 'Intelligent Alerts', desc: 'Proactive notifications' },
-                { icon: '⚡', title: 'Multi-Source Support', desc: 'PostgreSQL, MySQL, Redshift' }
-              ].map((feature, index) => (
-                <div key={index} className="flex items-start space-x-3 p-4 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all duration-300">
-                  <span className="text-2xl">{feature.icon}</span>
-                  <div>
-                    <h3 className="text-white font-semibold text-sm">{feature.title}</h3>
-                    <p className="text-gray-400 text-xs">{feature.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+              {/* Feature Grid */}
+              <FeatureGrid>
+                <FeatureCard borderColor="#06b6d4" hoverColor="#22d3ee">
+                  <FeatureTitle color="#22d3ee">
+                    ∞ Real-time Sync
+                  </FeatureTitle>
+                  <FeatureDescription>Quantum-speed monitoring</FeatureDescription>
+                </FeatureCard>
 
-            {/* Stats */}
-            <div className="flex justify-center sm:justify-start space-x-8 animate-fade-in-up delay-300">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-blue-400">99.9%</div>
-                <div className="text-gray-400 text-sm">Uptime</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-purple-400">24/7</div>
-                <div className="text-gray-400 text-sm">Monitoring</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-cyan-400">Real-time</div>
-                <div className="text-gray-400 text-sm">Alerts</div>
-              </div>
-            </div>
-          </div>
-        </div>
+                <FeatureCard borderColor="#a855f7" hoverColor="#c084fc">
+                  <FeatureTitle color="#c084fc">
+                    ◊ Neural Analytics
+                  </FeatureTitle>
+                  <FeatureDescription>AI-driven insights</FeatureDescription>
+                </FeatureCard>
 
-        {/* Right Side - Auth Form */}
-        <div className="flex-1 flex items-center justify-center p-8 lg:min-h-screen">
-          <div className="w-full max-w-md">
-            <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-8 shadow-2xl animate-fade-in-right">
-              {/* Form Header */}
-              <div className="text-center mb-8">
-                <h3 className="text-3xl font-bold text-white mb-2">
-                  {isLogin ? 'Welcome Back' : 'Join autoDQ'}
-                </h3>
-                <p className="text-gray-300">
-                  {isLogin ? 'Sign in to your account' : 'Create your account'}
-                </p>
-              </div>
+                <FeatureCard borderColor="#10b981" hoverColor="#34d399">
+                  <FeatureTitle color="#34d399">
+                    ⟡ Smart Alerts
+                  </FeatureTitle>
+                  <FeatureDescription>Predictive notifications</FeatureDescription>
+                </FeatureCard>
 
-              {/* Auth Form */}
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {!isLogin && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="firstName" className="block text-sm font-medium text-gray-300 mb-2">
-                        First Name
-                      </label>
-                      <input
-                        type="text"
-                        id="firstName"
-                        name="firstName"
-                        value={formData.firstName}
-                        onChange={handleInputChange}
-                        required={!isLogin}
-                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                        placeholder="John"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="lastName" className="block text-sm font-medium text-gray-300 mb-2">
-                        Last Name
-                      </label>
-                      <input
-                        type="text"
-                        id="lastName"
-                        name="lastName"
-                        value={formData.lastName}
-                        onChange={handleInputChange}
-                        required={!isLogin}
-                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                        placeholder="Doe"
-                      />
-                    </div>
-                  </div>
-                )}
+                <FeatureCard borderColor="#f59e0b" hoverColor="#fbbf24">
+                  <FeatureTitle color="#fbbf24">
+                    ⬢ Multi-Source
+                  </FeatureTitle>
+                  <FeatureDescription>Universal compatibility</FeatureDescription>
+                </FeatureCard>
+              </FeatureGrid>
 
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    placeholder="john@example.com"
-                  />
-                </div>
+              {/* Stats */}
+              <StatsSection>
+                <StatItem>
+                  <StatValue color="#22d3ee">99.9%</StatValue>
+                  <StatLabel>Uptime</StatLabel>
+                </StatItem>
+                <StatItem>
+                  <StatValue color="#c084fc">&lt;1ms</StatValue>
+                  <StatLabel>Latency</StatLabel>
+                </StatItem>
+                <StatItem>
+                  <StatValue color="#34d399">∞</StatValue>
+                  <StatLabel>Scale</StatLabel>
+                </StatItem>
+              </StatsSection>
+            </HeroContent>
+          </HeroSection>
 
-                <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-                    Password
-                  </label>
-                  <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    placeholder="••••••••"
-                  />
-                </div>
+          {/* Right Side - Auth Terminal */}
+          <AuthSection>
+            <TerminalWindow>
+              {/* Terminal Header */}
+              <TerminalHeader>
+                <TerminalButtons>
+                  <TerminalButton color="#ef4444" />
+                  <TerminalButton color="#eab308" />
+                  <TerminalButton color="#22c55e" />
+                </TerminalButtons>
+                <TerminalTitle>
+                  SECURE_TERMINAL_v2.1
+                </TerminalTitle>
+                <div style={{ width: '1rem' }} />
+              </TerminalHeader>
 
-                {!isLogin && (
-                  <div>
-                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
-                      Confirm Password
-                    </label>
-                    <input
-                      type="password"
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      value={formData.confirmPassword}
+              {/* Terminal Content */}
+              <TerminalContent>
+                {/* Terminal Prompt */}
+                <TerminalPrompt>
+                  <PromptLine color="#10b981">
+                    root@autodq:~$ authenticate_user
+                  </PromptLine>
+                  <PromptLine color="#22d3ee">
+                    {isLogin ? 'LOGIN_PROTOCOL_ACTIVE' : 'REGISTRATION_PROTOCOL_ACTIVE'}
+                  </PromptLine>
+                </TerminalPrompt>
+
+                {/* Auth Form */}
+                <Form onSubmit={handleSubmit}>
+                  {!isLogin && (
+                    <InputRow>
+                      <InputGroup>
+                        <Label>FIRST_NAME:</Label>
+                        <Input
+                          type="text"
+                          name="firstName"
+                          value={formData.firstName}
+                          onChange={handleInputChange}
+                          required={!isLogin}
+                          placeholder="John"
+                        />
+                      </InputGroup>
+                      <InputGroup>
+                        <Label>LAST_NAME:</Label>
+                        <Input
+                          type="text"
+                          name="lastName"
+                          value={formData.lastName}
+                          onChange={handleInputChange}
+                          required={!isLogin}
+                          placeholder="Doe"
+                        />
+                      </InputGroup>
+                    </InputRow>
+                  )}
+
+                  <InputGroup>
+                    <Label>EMAIL_ADDRESS:</Label>
+                    <Input
+                      type="email"
+                      name="email"
+                      value={formData.email}
                       onChange={handleInputChange}
-                      required={!isLogin}
-                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      required
+                      placeholder="user@domain.com"
+                    />
+                  </InputGroup>
+
+                  <InputGroup>
+                    <Label>PASSWORD:</Label>
+                    <Input
+                      type="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      required
                       placeholder="••••••••"
                     />
-                  </div>
-                )}
+                  </InputGroup>
 
-                {error && (
-                  <div className="p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-300 text-sm">
-                    {error}
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105"
-                >
-                  {isLoading ? (
-                    <div className="flex items-center justify-center">
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      Processing...
-                    </div>
-                  ) : (
-                    isLogin ? 'Sign In' : 'Create Account'
+                  {!isLogin && (
+                    <InputGroup>
+                      <Label>CONFIRM_PASSWORD:</Label>
+                      <Input
+                        type="password"
+                        name="confirmPassword"
+                        value={formData.confirmPassword}
+                        onChange={handleInputChange}
+                        required={!isLogin}
+                        placeholder="••••••••"
+                      />
+                    </InputGroup>
                   )}
-                </button>
-              </form>
 
-              {/* Toggle Mode */}
-              <div className="mt-6 text-center">
-                <p className="text-gray-300">
-                  {isLogin ? "Don't have an account?" : "Already have an account?"}
-                  <button
-                    onClick={toggleMode}
-                    className="ml-2 text-blue-400 hover:text-blue-300 font-semibold transition-colors"
-                  >
-                    {isLogin ? 'Sign Up' : 'Sign In'}
-                  </button>
-                </p>
-              </div>
+                  {error && (
+                    <ErrorMessage>
+                      ERROR: {error}
+                    </ErrorMessage>
+                  )}
 
-              {/* Demo Account */}
-              <div className="mt-4 p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
-                <p className="text-yellow-300 text-xs text-center">
-                  <strong>Demo:</strong> demo@autodq.com / demo<br />
-                  <strong>Or:</strong> admin@autodq.com / password
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+                  <SubmitButton type="submit" disabled={isLoading}>
+                    {isLoading ? 'PROCESSING...' : (isLogin ? 'AUTHENTICATE' : 'REGISTER')}
+                  </SubmitButton>
+                </Form>
+
+                {/* Toggle Mode */}
+                <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+                  <ToggleButton onClick={toggleMode}>
+                    {isLogin ? '> CREATE_NEW_ACCOUNT' : '> EXISTING_USER_LOGIN'}
+                  </ToggleButton>
+                </div>
+
+                {/* Demo Info */}
+                <DemoInfo>
+                  <DemoTitle>DEMO_CREDENTIALS:</DemoTitle>
+                  <DemoCredentials>
+                    <div>demo@autodq.com / demo</div>
+                    <div>admin@autodq.com / password</div>
+                  </DemoCredentials>
+                </DemoInfo>
+              </TerminalContent>
+            </TerminalWindow>
+          </AuthSection>
+        </MainContent>
+      </Container>
+    </>
   )
 }
 
