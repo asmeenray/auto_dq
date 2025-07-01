@@ -1,0 +1,127 @@
+export interface User {
+  id: string;
+  email: string;
+  name?: string;
+  createdAt: string;
+  _count?: {
+    dataSources: number;
+    indicators: number;
+  };
+}
+
+export interface CreateUserInput {
+  email: string;
+  name?: string;
+  password: string;
+}
+
+export interface DataSource {
+  id: string;
+  name: string;
+  type: string;
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  userId: string;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  indicators?: {
+    id: string;
+    name: string;
+    description: string;
+  }[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateDataSourceInput {
+  name: string;
+  type: string;
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  password: string;
+  userId: string;
+}
+
+export interface Indicator {
+  id: string;
+  name: string;
+  description?: string;
+  query: string;
+  threshold?: number;
+  operator: string;
+  dataSourceId: string;
+  dataSource?: {
+    id: string;
+    name: string;
+    type: string;
+  };
+  userId: string;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  executions?: Execution[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateIndicatorInput {
+  name: string;
+  description?: string;
+  query: string;
+  threshold?: number;
+  operator: string;
+  dataSourceId: string;
+  userId: string;
+}
+
+export interface Execution {
+  id: string;
+  value: number;
+  passed: boolean;
+  error?: string;
+  executedAt: string;
+  indicatorId: string;
+  indicator?: {
+    name: string;
+  };
+}
+
+export interface DashboardStats {
+  totalDataSources: number;
+  totalIndicators: number;
+  totalExecutions: number;
+  passedExecutions: number;
+  failedExecutions: number;
+  successRate: number;
+}
+
+export interface ApiResponse<T> {
+  data?: T;
+  error?: string;
+}
+
+// Authentication types
+export interface AuthState {
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+}
+
+// UI Component types
+export interface LoadingState {
+  isLoading: boolean;
+  error?: string;
+}
+
+export type DatabaseType = 'mysql' | 'postgresql' | 'redshift';
+export type OperatorType = 'gt' | 'gte' | 'lt' | 'lte' | 'eq' | 'ne';

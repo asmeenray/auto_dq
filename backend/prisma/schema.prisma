@@ -1,0 +1,82 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  dataSources DataSource[]
+  indicators  Indicator[]
+
+  @@map("users")
+}
+
+model DataSource {
+  id       String @id @default(cuid())
+  name     String
+  type     String // mysql, postgresql, redshift
+  host     String
+  port     Int
+  database String
+  username String
+  password String
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  indicators Indicator[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("data_sources")
+}
+
+model Indicator {
+  id          String @id @default(cuid())
+  name        String
+  description String?
+  query       String
+  threshold   Float?
+  operator    String // gt, lt, eq, gte, lte
+
+  dataSourceId String
+  dataSource   DataSource @relation(fields: [dataSourceId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  executions Execution[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("indicators")
+}
+
+model Execution {
+  id          String   @id @default(cuid())
+  value       Float
+  passed      Boolean
+  error       String?
+  executedAt  DateTime @default(now())
+
+  indicatorId String
+  indicator   Indicator @relation(fields: [indicatorId], references: [id])
+
+  @@map("executions")
+}
