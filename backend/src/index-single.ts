@@ -26,8 +26,6 @@ async function startServer() {
   app.get('/api/hello', (req, res) => {
     res.json({ message: 'Hello from autoDQ Backend!' });
   });
-    res.json({ message: 'Hello from autoDQ Backend!' });
-  });
 
   // Data Sources routes
   app.get('/api/data-sources', async (req, res) => {
@@ -163,12 +161,14 @@ async function startServer() {
   }
 
   // Start server
-  const PORT = process.env.PORT || process.env.API_PORT || 3001;
+  const PORT = process.env.PORT || 3001;
   app.listen(PORT, () => {
     console.log(`🚀 autoDQ Backend server is running on port ${PORT}`);
     console.log(`📡 Health check: http://localhost:${PORT}/health`);
     console.log(`🔗 API Base URL: http://localhost:${PORT}/api`);
-    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    if (process.env.NODE_ENV === 'production') {
+      console.log(`🌐 Frontend served at: http://localhost:${PORT}`);
+    }
   });
 }
 
