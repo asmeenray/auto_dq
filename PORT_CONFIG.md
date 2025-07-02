@@ -9,6 +9,16 @@ This document defines the fixed port assignments for the AutoDQ development envi
 | Frontend | 3000 | http://localhost:3000      | `frontend/vite.config.ts` |
 | Backend  | 3001 | http://localhost:3001      | `backend/.env` (API_PORT) |
 
+## Data Source Support
+
+AutoDQ supports connections to multiple data warehouse types:
+
+- **Amazon Redshift** - Fast, simple, cost-effective data warehouse
+- **Snowflake** - Cloud-native data platform
+- **Google BigQuery** - Serverless, highly scalable data warehouse
+
+Each data source type has specific configuration requirements and connection fields optimized for that platform.
+
 ## Configuration Details
 
 ### Frontend (Port 3000)

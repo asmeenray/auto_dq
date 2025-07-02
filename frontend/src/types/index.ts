@@ -18,7 +18,7 @@ export interface CreateUserInput {
 export interface DataSource {
   id: string;
   name: string;
-  type: string;
+  type: 'redshift' | 'snowflake' | 'bigquery';
   host: string;
   port: number;
   database: string;
@@ -36,11 +36,19 @@ export interface DataSource {
   }[];
   createdAt: string;
   updatedAt: string;
+  // Snowflake specific fields
+  warehouse?: string;
+  role?: string;
+  account?: string;
+  // BigQuery specific fields
+  projectId?: string;
+  keyFile?: string;
+  location?: string;
 }
 
 export interface CreateDataSourceInput {
   name: string;
-  type: string;
+  type: 'redshift' | 'snowflake' | 'bigquery';
   host: string;
   port: number;
   database: string;
@@ -52,6 +60,10 @@ export interface CreateDataSourceInput {
   warehouse?: string;
   role?: string;
   account?: string;
+  // BigQuery specific fields
+  projectId?: string;
+  keyFile?: string;
+  location?: string;
 }
 
 export interface Indicator {

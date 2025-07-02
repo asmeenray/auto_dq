@@ -6,7 +6,7 @@ import { useAppSelector } from '../store/hooks'
 
 interface DataSourceFormData {
   name: string;
-  type: 'redshift' | 'snowflake' | '';
+  type: 'redshift' | 'snowflake' | 'bigquery' | '';
   host: string;
   port: number;
   database: string;
@@ -16,6 +16,9 @@ interface DataSourceFormData {
   warehouse?: string; // For Snowflake
   role?: string; // For Snowflake
   account?: string; // For Snowflake
+  projectId?: string; // For BigQuery
+  keyFile?: string; // For BigQuery (JSON service account key)
+  location?: string; // For BigQuery (default: US)
 }
 
 // Animations
@@ -202,25 +205,29 @@ const Input = styled.input`
   }
 `
 
-const DatabaseTypeCard = styled.div<{ selected: boolean }>`
-  padding: 1rem;
-  border: 2px solid ${props => props.selected ? '#22d3ee' : 'rgba(138, 146, 176, 0.3)'};
+const Select = styled.select`
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(138, 146, 176, 0.3);
   border-radius: 0.5rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background: ${props => props.selected ? 'rgba(34, 211, 238, 0.1)' : 'rgba(0, 0, 0, 0.3)'};
-  
-  &:hover {
-    border-color: #22d3ee;
-    background: rgba(34, 211, 238, 0.05);
-  }
-`
-
-const DatabaseTypeTitle = styled.h3`
   color: #ccd6f6;
-  font-size: 1rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  
+  &:focus {
+    outline: none;
+    border-color: #22d3ee;
+    background: rgba(6, 182, 212, 0.05);
+    box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.1);
+  }
+  
+  option {
+    background: #1f2937;
+    color: #ccd6f6;
+    padding: 0.5rem;
+  }
 `
 
 const DatabaseTypeDescription = styled.p`
@@ -318,7 +325,10 @@ const AddDataSourcePage: React.FC = () => {
     password: '',
     warehouse: '',
     role: '',
-    account: ''
+    account: '',
+    projectId: '',
+    keyFile: '',
+    location: 'US'
   })
   const [isLoading, setIsLoading] = useState(false)
   const [isTestingConnection, setIsTestingConnection] = useState(false)
@@ -345,7 +355,10 @@ const AddDataSourcePage: React.FC = () => {
               password: '', // Don't pre-fill password for security
               warehouse: ds.warehouse || '',
               role: ds.role || '',
-              account: ds.account || ''
+              account: ds.account || '',
+              projectId: ds.projectId || '',
+              keyFile: ds.keyFile || '',
+              location: ds.location || 'US'
             })
           } else {
             setError('Data source not found')
@@ -358,12 +371,38 @@ const AddDataSourcePage: React.FC = () => {
     }
   }, [isEditMode, params.id])
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'port' ? parseInt(value) || 0 : value
-    }))
+    
+    // Handle database type selection with defaults
+    if (name === 'type') {
+      const defaultConfig = {
+        redshift: { port: 5439, host: '' },
+        snowflake: { port: 443, host: '' },
+        bigquery: { port: 443, host: 'bigquery.googleapis.com' }
+      }
+      
+      const config = defaultConfig[value as keyof typeof defaultConfig] || { port: 5439, host: '' }
+      
+      setFormData(prev => ({
+        ...prev,
+        type: value as 'redshift' | 'snowflake' | 'bigquery',
+        port: config.port,
+        host: config.host,
+        // Clear type-specific fields
+        warehouse: value === 'snowflake' ? prev.warehouse : '',
+        role: value === 'snowflake' ? prev.role : '',
+        account: value === 'snowflake' ? prev.account : '',
+        projectId: value === 'bigquery' ? prev.projectId : '',
+        keyFile: value === 'bigquery' ? prev.keyFile : '',
+        location: value === 'bigquery' ? (prev.location || 'US') : ''
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: name === 'port' ? parseInt(value) || 0 : value
+      }))
+    }
     
     // Clear messages when user types
     setError('')
@@ -371,24 +410,23 @@ const AddDataSourcePage: React.FC = () => {
     setConnectionTestResult(null)
   }
 
-  const handleDatabaseTypeSelect = (type: 'redshift' | 'snowflake') => {
-    setFormData(prev => ({
-      ...prev,
-      type,
-      port: type === 'redshift' ? 5439 : 443, // Default ports
-      warehouse: type === 'snowflake' ? prev.warehouse : '',
-      role: type === 'snowflake' ? prev.role : '',
-      account: type === 'snowflake' ? prev.account : ''
-    }))
-    setError('')
-    setSuccessMessage('')
-    setConnectionTestResult(null)
-  }
-
   const testConnection = async () => {
-    if (!formData.type || !formData.host || !formData.username || !formData.password) {
-      setError('Please fill in all required connection details before testing')
+    // Basic validation based on database type
+    if (!formData.type) {
+      setError('Please select a database type before testing')
       return
+    }
+    
+    if (formData.type === 'bigquery') {
+      if (!formData.projectId || !formData.keyFile) {
+        setError('Please fill in Project ID and Service Account Key for BigQuery connections')
+        return
+      }
+    } else {
+      if (!formData.host || !formData.username || !formData.password) {
+        setError('Please fill in all required connection details before testing')
+        return
+      }
     }
 
     setIsTestingConnection(true)
@@ -436,15 +474,28 @@ const AddDataSourcePage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!formData.name || !formData.type || !formData.host || !formData.username) {
+    if (!formData.name || !formData.type) {
       setError('Please fill in all required fields')
       return
     }
 
-    // In edit mode, password is optional (only update if provided)
-    if (!isEditMode && !formData.password) {
-      setError('Password is required')
-      return
+    // Validate based on database type
+    if (formData.type === 'bigquery') {
+      if (!formData.projectId || !formData.keyFile) {
+        setError('Project ID and Service Account Key are required for BigQuery')
+        return
+      }
+    } else {
+      if (!formData.host || !formData.username) {
+        setError('Host and Username are required')
+        return
+      }
+      
+      // In edit mode, password is optional (only update if provided)
+      if (!isEditMode && !formData.password) {
+        setError('Password is required')
+        return
+      }
     }
 
     if (!user?.id) {
@@ -534,70 +585,70 @@ const AddDataSourcePage: React.FC = () => {
             {/* Database Type Selection */}
             <FormGroup>
               <Label>Database Type *</Label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.5rem' }}>
-                <DatabaseTypeCard 
-                  selected={formData.type === 'redshift'}
-                  onClick={() => handleDatabaseTypeSelect('redshift')}
-                >
-                  <DatabaseTypeTitle>Amazon Redshift</DatabaseTypeTitle>
-                  <DatabaseTypeDescription>
-                    Fast, simple, cost-effective data warehouse
-                  </DatabaseTypeDescription>
-                </DatabaseTypeCard>
-                
-                <DatabaseTypeCard 
-                  selected={formData.type === 'snowflake'}
-                  onClick={() => handleDatabaseTypeSelect('snowflake')}
-                >
-                  <DatabaseTypeTitle>Snowflake</DatabaseTypeTitle>
-                  <DatabaseTypeDescription>
-                    Cloud-native data platform
-                  </DatabaseTypeDescription>
-                </DatabaseTypeCard>
-              </div>
+              <Select
+                name="type"
+                value={formData.type}
+                onChange={handleInputChange}
+                required
+              >
+                <option value="">Select a database type</option>
+                <option value="redshift">Amazon Redshift</option>
+                <option value="snowflake">Snowflake</option>
+                <option value="bigquery">Google BigQuery</option>
+              </Select>
+              {formData.type && (
+                <DatabaseTypeDescription style={{ marginTop: '0.5rem' }}>
+                  {formData.type === 'redshift' && 'Fast, simple, cost-effective data warehouse'}
+                  {formData.type === 'snowflake' && 'Cloud-native data platform'}
+                  {formData.type === 'bigquery' && 'Serverless, highly scalable data warehouse'}
+                </DatabaseTypeDescription>
+              )}
             </FormGroup>
 
             {/* Connection Details */}
             {formData.type && (
               <>
-                <FormRow>
-                  <FormGroup>
-                    <Label>Host *</Label>
-                    <Input
-                      type="text"
-                      name="host"
-                      value={formData.host}
-                      onChange={handleInputChange}
-                      placeholder={formData.type === 'redshift' 
-                        ? 'redshift-cluster.region.redshift.amazonaws.com' 
-                        : 'account.region.snowflakecomputing.com'
-                      }
-                      required
-                    />
-                  </FormGroup>
-                  
-                  <FormGroup>
-                    <Label>Port *</Label>
-                    <Input
-                      type="number"
-                      name="port"
-                      value={formData.port}
-                      onChange={handleInputChange}
-                      placeholder={formData.type === 'redshift' ? '5439' : '443'}
-                      required
-                    />
-                  </FormGroup>
-                </FormRow>
+                {/* Host/Port fields - not shown for BigQuery as they're auto-configured */}
+                {formData.type !== 'bigquery' && (
+                  <FormRow>
+                    <FormGroup>
+                      <Label>Host *</Label>
+                      <Input
+                        type="text"
+                        name="host"
+                        value={formData.host}
+                        onChange={handleInputChange}
+                        placeholder={formData.type === 'redshift' 
+                          ? 'redshift-cluster.region.redshift.amazonaws.com' 
+                          : 'account.region.snowflakecomputing.com'
+                        }
+                        required
+                      />
+                    </FormGroup>
+                    
+                    <FormGroup>
+                      <Label>Port *</Label>
+                      <Input
+                        type="number"
+                        name="port"
+                        value={formData.port}
+                        onChange={handleInputChange}
+                        placeholder={formData.type === 'redshift' ? '5439' : '443'}
+                        required
+                      />
+                    </FormGroup>
+                  </FormRow>
+                )}
 
                 <FormRow>
                   <FormGroup>
-                    <Label>Database *</Label>
+                    <Label>{formData.type === 'bigquery' ? 'Dataset *' : 'Database *'}</Label>
                     <Input
                       type="text"
                       name="database"
                       value={formData.database}
                       onChange={handleInputChange}
-                      placeholder="database_name"
+                      placeholder={formData.type === 'bigquery' ? 'dataset_name' : 'database_name'}
                       required
                     />
                   </FormGroup>
@@ -654,38 +705,100 @@ const AddDataSourcePage: React.FC = () => {
                   </FormGroup>
                 )}
 
-                <FormRow>
-                  <FormGroup>
-                    <Label>Username *</Label>
-                    <Input
-                      type="text"
-                      name="username"
-                      value={formData.username}
-                      onChange={handleInputChange}
-                      placeholder="username"
-                      required
-                    />
-                  </FormGroup>
-                  
-                  <FormGroup>
-                    <Label>Password *</Label>
-                    <Input
-                      type="password"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      placeholder="password"
-                      required
-                    />
-                  </FormGroup>
-                </FormRow>
+                {/* BigQuery specific fields */}
+                {formData.type === 'bigquery' && (
+                  <>
+                    <FormGroup>
+                      <Label>Project ID *</Label>
+                      <Input
+                        type="text"
+                        name="projectId"
+                        value={formData.projectId}
+                        onChange={handleInputChange}
+                        placeholder="your-gcp-project-id"
+                        required
+                      />
+                    </FormGroup>
+                    
+                    <FormGroup>
+                      <Label>Service Account Key (JSON) *</Label>
+                      <textarea
+                        name="keyFile"
+                        value={formData.keyFile}
+                        onChange={handleInputChange}
+                        placeholder='{"type": "service_account", "project_id": "...", ...}'
+                        required
+                        style={{
+                          width: '100%',
+                          minHeight: '120px',
+                          padding: '0.75rem 1rem',
+                          background: 'rgba(0, 0, 0, 0.5)',
+                          border: '1px solid rgba(138, 146, 176, 0.3)',
+                          borderRadius: '0.5rem',
+                          color: '#ccd6f6',
+                          fontSize: '0.875rem',
+                          fontFamily: 'monospace',
+                          resize: 'vertical'
+                        }}
+                      />
+                    </FormGroup>
+                    
+                    <FormGroup>
+                      <Label>Location</Label>
+                      <Select
+                        name="location"
+                        value={formData.location}
+                        onChange={handleInputChange}
+                      >
+                        <option value="US">US (Multi-region)</option>
+                        <option value="EU">EU (Multi-region)</option>
+                        <option value="us-central1">us-central1</option>
+                        <option value="us-east1">us-east1</option>
+                        <option value="us-west1">us-west1</option>
+                        <option value="europe-west1">europe-west1</option>
+                        <option value="asia-east1">asia-east1</option>
+                      </Select>
+                    </FormGroup>
+                  </>
+                )}
+
+                {/* Username/Password fields - not required for BigQuery */}
+                {formData.type !== 'bigquery' && (
+                  <FormRow>
+                    <FormGroup>
+                      <Label>Username *</Label>
+                      <Input
+                        type="text"
+                        name="username"
+                        value={formData.username}
+                        onChange={handleInputChange}
+                        placeholder="username"
+                        required
+                      />
+                    </FormGroup>
+                    
+                    <FormGroup>
+                      <Label>Password *</Label>
+                      <Input
+                        type="password"
+                        name="password"
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        placeholder="password"
+                        required
+                      />
+                    </FormGroup>
+                  </FormRow>
+                )}
 
                 {/* Test Connection Button */}
                 <TestConnectionButton
                   type="button"
                   variant="secondary"
                   onClick={testConnection}
-                  disabled={isTestingConnection || !formData.type || !formData.host || !formData.username || !formData.password}
+                  disabled={isTestingConnection || !formData.type || 
+                    (formData.type === 'bigquery' ? (!formData.projectId || !formData.keyFile) : 
+                     (!formData.host || !formData.username || !formData.password))}
                 >
                   {isTestingConnection ? 'Testing...' : 'Test Connection'}
                 </TestConnectionButton>
