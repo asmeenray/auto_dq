@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import styled, { keyframes } from 'styled-components'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { apiClient } from '../utils/api-client'
 import { useAppSelector } from '../store/hooks'
 
@@ -304,7 +304,9 @@ const TestConnectionButton = styled(Button)`
 
 const AddDataSourcePage: React.FC = () => {
   const navigate = useNavigate()
+  const params = useParams()
   const { user } = useAppSelector(state => state.auth)
+  const isEditMode = Boolean(params.id)
   const [formData, setFormData] = useState<DataSourceFormData>({
     name: '',
     type: '',
@@ -323,6 +325,38 @@ const AddDataSourcePage: React.FC = () => {
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const [connectionTestResult, setConnectionTestResult] = useState<'success' | 'error' | null>(null)
+
+  // Load data source data when in edit mode
+  useEffect(() => {
+    if (isEditMode && params.id) {
+      const loadDataSource = async () => {
+        try {
+          const response = await apiClient.getDataSource(params.id!)
+          if (response.data?.dataSource) {
+            const ds = response.data.dataSource
+            setFormData({
+              name: ds.name || '',
+              type: ds.type || '',
+              host: ds.host || '',
+              port: ds.port || 5439,
+              database: ds.database || '',
+              schema: ds.schema || '',
+              username: ds.username || '',
+              password: '', // Don't pre-fill password for security
+              warehouse: ds.warehouse || '',
+              role: ds.role || '',
+              account: ds.account || ''
+            })
+          } else {
+            setError('Data source not found')
+          }
+        } catch (error) {
+          setError('Failed to load data source')
+        }
+      }
+      loadDataSource()
+    }
+  }, [isEditMode, params.id])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -402,8 +436,14 @@ const AddDataSourcePage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!formData.name || !formData.type || !formData.host || !formData.username || !formData.password) {
+    if (!formData.name || !formData.type || !formData.host || !formData.username) {
       setError('Please fill in all required fields')
+      return
+    }
+
+    // In edit mode, password is optional (only update if provided)
+    if (!isEditMode && !formData.password) {
+      setError('Password is required')
       return
     }
 
@@ -421,17 +461,31 @@ const AddDataSourcePage: React.FC = () => {
         ...formData,
         userId: user.id
       }
-      const response = await apiClient.createDataSource(dataSourceInput)
+      
+      let response
+      if (isEditMode && params.id) {
+        response = await apiClient.updateDataSource(params.id, dataSourceInput)
+        if (response.data?.dataSource) {
+          setSuccessMessage('Data source updated successfully!')
+        } else {
+          setError(response.error || 'Failed to update data source')
+        }
+      } else {
+        response = await apiClient.createDataSource(dataSourceInput)
+        if (response.data?.dataSource) {
+          setSuccessMessage('Data source created successfully!')
+        } else {
+          setError(response.error || 'Failed to create data source')
+        }
+      }
+      
       if (response.data?.dataSource) {
-        setSuccessMessage('Data source created successfully!')
         setTimeout(() => {
           navigate('/dashboard')
         }, 2000)
-      } else {
-        setError(response.error || 'Failed to create data source')
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to create data source')
+      setError(err.message || `Failed to ${isEditMode ? 'update' : 'create'} data source`)
     } finally {
       setIsLoading(false)
     }
@@ -454,9 +508,12 @@ const AddDataSourcePage: React.FC = () => {
       </Header>
 
       <Main>
-        <PageTitle>Add Data Source</PageTitle>
+        <PageTitle>{isEditMode ? 'Edit Data Source' : 'Add Data Source'}</PageTitle>
         <PageSubtitle>
-          Connect to your data warehouse to start monitoring data quality
+          {isEditMode 
+            ? 'Update your data source configuration' 
+            : 'Connect to your data warehouse to start monitoring data quality'
+          }
         </PageSubtitle>
 
         <FormCard>
@@ -655,7 +712,10 @@ const AddDataSourcePage: React.FC = () => {
                 variant="primary"
                 disabled={isLoading || !formData.type || connectionTestResult !== 'success'}
               >
-                {isLoading ? 'Creating...' : 'Create Data Source'}
+                {isLoading 
+                  ? (isEditMode ? 'Updating...' : 'Creating...') 
+                  : (isEditMode ? 'Update Data Source' : 'Create Data Source')
+                }
               </Button>
             </ButtonGroup>
           </Form>

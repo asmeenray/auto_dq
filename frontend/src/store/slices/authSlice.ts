@@ -1,6 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import { AuthState, User } from '../../types'
-import { apiClient } from '../../utils/api-client'
 
 // Updated AuthState interface to include error
 interface ExtendedAuthState extends AuthState {
@@ -23,21 +22,65 @@ const initialState: ExtendedAuthState = {
   error: undefined,
 }
 
+// Helper functions for demo user management
+const getStoredUsers = (): Array<{email: string, password: string, name: string}> => {
+  try {
+    const users = localStorage.getItem('demo-users');
+    return users ? JSON.parse(users) : [];
+  } catch {
+    return [];
+  }
+}
+
+const storeUser = (email: string, password: string, name: string) => {
+  const users = getStoredUsers();
+  const existingUserIndex = users.findIndex(u => u.email === email);
+  
+  if (existingUserIndex >= 0) {
+    users[existingUserIndex] = { email, password, name };
+  } else {
+    users.push({ email, password, name });
+  }
+  
+  localStorage.setItem('demo-users', JSON.stringify(users));
+}
+
+const findUser = (email: string, password: string) => {
+  const users = getStoredUsers();
+  return users.find(u => u.email === email && u.password === password);
+}
+
 // Async thunks
 export const loginUser = createAsyncThunk(
   'auth/login',
   async (credentials: { email: string; password: string }, { rejectWithValue }) => {
     try {
       // For demo purposes, we'll use mock authentication
+      // Check hardcoded demo credentials first
       if ((credentials.email === 'demo@autodq.com' && credentials.password === 'demo') ||
           (credentials.email === 'admin@autodq.com' && credentials.password === 'password')) {
         const token = 'demo-token-' + Date.now();
         localStorage.setItem('token', token);
         
         return { token, user: MOCK_USER };
-      } else {
-        return rejectWithValue('Invalid credentials');
       }
+      
+      // Check registered users
+      const registeredUser = findUser(credentials.email, credentials.password);
+      if (registeredUser) {
+        const token = 'demo-token-' + Date.now();
+        localStorage.setItem('token', token);
+        
+        const user = {
+          ...MOCK_USER,
+          email: registeredUser.email,
+          name: registeredUser.name
+        };
+        
+        return { token, user };
+      }
+      
+      return rejectWithValue('Invalid credentials');
     } catch (error: any) {
       return rejectWithValue(error.message || 'Login failed');
     }
@@ -48,17 +91,41 @@ export const registerUser = createAsyncThunk(
   'auth/register',
   async (userData: { email: string; name?: string; password: string }, { rejectWithValue }) => {
     try {
-      const response = await apiClient.createUser(userData);
+      // For demo purposes, we'll use mock registration
+      // In a real app, this would call the actual API
       
-      if (response.error) {
-        return rejectWithValue(response.error);
+      // Simulate some validation
+      if (!userData.email || !userData.password) {
+        return rejectWithValue('Email and password are required');
       }
       
-      // Auto-login after registration
+      if (userData.password.length < 3) {
+        return rejectWithValue('Password must be at least 3 characters');
+      }
+      
+      // Check if user already exists
+      const existingUsers = getStoredUsers();
+      const userExists = existingUsers.some(u => u.email === userData.email);
+      
+      if (userExists) {
+        return rejectWithValue('User with this email already exists');
+      }
+      
+      // Store user for future logins
+      const userName = userData.name || userData.email.split('@')[0];
+      storeUser(userData.email, userData.password, userName);
+      
+      // Auto-login after registration with mock user
       const token = 'demo-token-' + Date.now();
       localStorage.setItem('token', token);
       
-      return { token, user: response.data!.user };
+      const newUser = {
+        ...MOCK_USER,
+        email: userData.email,
+        name: userName
+      };
+      
+      return { token, user: newUser };
     } catch (error: any) {
       return rejectWithValue(error.message || 'Registration failed');
     }

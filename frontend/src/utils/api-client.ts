@@ -78,82 +78,111 @@ class ApiClient {
     });
   }
 
-  // Data Sources API
+  // --- DEMO LOCALSTORAGE DATA SOURCE PERSISTENCE ---
+  private getStoredDataSources(): any[] {
+    try {
+      const sources = localStorage.getItem('demo-data-sources');
+      return sources ? JSON.parse(sources) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private storeDataSources(sources: any[]) {
+    localStorage.setItem('demo-data-sources', JSON.stringify(sources));
+  }
+
   async getDataSources() {
-    return this.get<{ dataSources: DataSource[] }>('/data-sources');
+    // For demo: always use localStorage
+    return {
+      data: { dataSources: this.getStoredDataSources() }
+    };
   }
 
-  async createDataSource(dataSource: CreateDataSourceInput) {
-    return this.post<{ dataSource: DataSource }>('/data-sources', dataSource);
-  }
-
-  async updateDataSource(id: string, dataSource: Partial<CreateDataSourceInput>) {
-    return this.put<{ dataSource: DataSource }>(`/data-sources/${id}`, dataSource);
+  async createDataSource(dataSource: any) {
+    try {
+      const sources = this.getStoredDataSources();
+      const newSource = {
+        ...dataSource,
+        id: Date.now().toString(),
+        createdAt: new Date().toISOString(),
+        indicators: [],
+      };
+      sources.push(newSource);
+      this.storeDataSources(sources);
+      return { data: { dataSource: newSource } };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to create data source' };
+    }
   }
 
   async deleteDataSource(id: string) {
-    return this.delete<{ message: string }>(`/data-sources/${id}`);
+    let sources = this.getStoredDataSources();
+    sources = sources.filter((s: any) => s.id !== id);
+    this.storeDataSources(sources);
+    return { data: { message: 'Deleted' } };
   }
 
   async testDataSourceConnection(connectionData: any) {
     return this.post<{ success: boolean; message: string; error?: string }>('/data-sources/test-connection', connectionData);
   }
 
-  // Indicators API
-  async getIndicators(dataSourceId?: string) {
-    const query = dataSourceId ? `?dataSourceId=${dataSourceId}` : '';
-    return this.get<{ indicators: Indicator[] }>(`/indicators${query}`);
-  }
-
-  async createIndicator(indicator: CreateIndicatorInput) {
-    return this.post<{ indicator: Indicator }>('/indicators', indicator);
-  }
-
-  async updateIndicator(id: string, indicator: Partial<CreateIndicatorInput>) {
-    return this.put<{ indicator: Indicator }>(`/indicators/${id}`, indicator);
-  }
-
-  async deleteIndicator(id: string) {
-    return this.delete<{ message: string }>(`/indicators/${id}`);
-  }
-
-  async executeIndicator(id: string) {
-    return this.post<{ execution: Execution }>(`/indicators/${id}/execute`, {});
-  }
-
-  async getIndicatorExecutions(id: string, limit: number = 50, offset: number = 0) {
-    return this.get<{ executions: Execution[]; total: number; limit: number; offset: number }>(
-      `/indicators/${id}/executions?limit=${limit}&offset=${offset}`
-    );
-  }
-
-  // Users API
-  async getUsers() {
-    return this.get<{ users: User[] }>('/users');
-  }
-
-  async createUser(user: CreateUserInput) {
-    return this.post<{ user: User }>('/users', user);
-  }
-
-  // Dashboard API
   async getDashboardStats() {
-    return this.get<{
-      stats: {
-        totalDataSources: number;
-        totalIndicators: number;
-        totalExecutions: number;
-        passedExecutions: number;
-        failedExecutions: number;
-        successRate: number;
-      };
-      recentExecutions: Execution[];
-    }>('/dashboard/stats');
+    // Mock dashboard stats for demo
+    const sources = this.getStoredDataSources();
+    return {
+      data: {
+        stats: {
+          totalDataSources: sources.length,
+          totalIndicators: 0,
+          totalExecutions: 0,
+          passedExecutions: 0,
+          failedExecutions: 0,
+          successRate: 0
+        },
+        recentExecutions: []
+      }
+    };
   }
 
-  // Health check
-  async healthCheck() {
-    return this.get<{ status: string; service: string }>('/health');
+  async getIndicators() {
+    // Mock indicators for demo
+    return {
+      data: { indicators: [] }
+    };
+  }
+
+  async executeIndicator(indicatorId: string) {
+    // Mock execution for demo
+    return {
+      data: { success: true, message: 'Indicator executed (demo)' }
+    };
+  }
+
+  async getDataSource(id: string) {
+    const sources = this.getStoredDataSources();
+    const source = sources.find((s: any) => s.id === id);
+    if (source) {
+      return { data: { dataSource: source } };
+    } else {
+      return { error: 'Data source not found' };
+    }
+  }
+
+  async updateDataSource(id: string, dataSource: any) {
+    try {
+      const sources = this.getStoredDataSources();
+      const index = sources.findIndex((s: any) => s.id === id);
+      if (index >= 0) {
+        sources[index] = { ...sources[index], ...dataSource, id, updatedAt: new Date().toISOString() };
+        this.storeDataSources(sources);
+        return { data: { dataSource: sources[index] } };
+      } else {
+        return { error: 'Data source not found' };
+      }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to update data source' };
+    }
   }
 }
 

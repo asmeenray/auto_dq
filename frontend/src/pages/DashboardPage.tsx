@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import styled, { keyframes } from 'styled-components'
 import { useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
-import { loginUser } from '../store/slices/authSlice'
+import { loginUser, logoutUser } from '../store/slices/authSlice'
 import { apiClient } from '../utils/api-client'
 import { DashboardStats, DataSource, Indicator, Execution } from '../types'
 
@@ -473,11 +473,18 @@ const ActionButton = styled.button`
   font-size: 0.875rem;
   cursor: pointer;
   transition: all 0.3s ease;
+  min-width: 60px;
+  position: relative;
+  z-index: 10;
   
   &:hover {
     color: #22d3ee;
     border-color: #22d3ee;
     background: rgba(34, 211, 238, 0.1);
+  }
+  
+  &:active {
+    transform: translateY(1px);
   }
 `
 
@@ -608,6 +615,11 @@ const DashboardPage: React.FC = () => {
     await dispatch(loginUser(loginForm))
   }
 
+  const handleLogout = async () => {
+    await dispatch(logoutUser())
+    navigate('/')
+  }
+
   const executeIndicator = async (indicatorId: string) => {
     try {
       const response = await apiClient.executeIndicator(indicatorId)
@@ -617,6 +629,18 @@ const DashboardPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to execute indicator:', error)
+    }
+  }
+
+  const handleDeleteDataSource = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this data source?')) {
+      try {
+        await apiClient.deleteDataSource(id)
+        // Reload dashboard data to reflect the deletion
+        loadDashboardData()
+      } catch (error) {
+        console.error('Failed to delete data source:', error)
+      }
     }
   }
 
@@ -690,10 +714,7 @@ const DashboardPage: React.FC = () => {
               Welcome, {user?.name || user?.email}
             </UserInfo>
             <LogoutButton 
-              onClick={() => {
-                localStorage.removeItem('token')
-                window.location.reload()
-              }}
+              onClick={handleLogout}
             >
               Logout
             </LogoutButton>
@@ -771,9 +792,32 @@ const DashboardPage: React.FC = () => {
                         {source.indicators?.length || 0} indicators
                       </CardMeta>
                     </div>
-                    <StatusIndicator status="connected">
-                      Connected
-                    </StatusIndicator>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexShrink: 0 }}>
+                      <StatusIndicator status="connected">
+                        Connected
+                      </StatusIndicator>
+                      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                        <ActionButton
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/edit-data-source/${source.id}`);
+                          }}
+                          title="Edit data source"
+                        >
+                          Edit
+                        </ActionButton>
+                        <ActionButton
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteDataSource(source.id);
+                          }}
+                          title="Delete data source"
+                          style={{ color: '#ef4444', borderColor: '#ef4444' }}
+                        >
+                          Delete
+                        </ActionButton>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </ContentCard>

@@ -46,6 +46,10 @@ const AppContent: React.FC = () => {
           path="/add-data-source" 
           element={<AddDataSourcePage />} 
         />
+        <Route 
+          path="/edit-data-source/:id" 
+          element={<AddDataSourcePage />} 
+        />
       </Routes>
     </Router>
   )
