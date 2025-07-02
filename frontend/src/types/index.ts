@@ -77,6 +77,12 @@ export interface Indicator {
   targetQuery?: string; // For completeness indicators
   threshold?: number;
   operator?: string;
+  
+  // Validity specific fields
+  validityMode?: 'exists' | 'threshold';
+  numericColumn?: string; // For threshold validity mode
+  allowedFailure?: number; // Allowed failure percentage (0-100)
+  
   dataSourceId: string;
   dataSource?: {
     id: string;

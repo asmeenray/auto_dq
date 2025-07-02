@@ -45,7 +45,20 @@ router.get('/', authenticateToken, async (req: any, res) => {
 // POST /api/indicators
 router.post('/', authenticateToken, async (req: any, res) => {
   try {
-    const { name, description, type, dataSourceId, query, targetQuery, threshold, operator } = req.body;
+    const { 
+      name, 
+      description, 
+      type, 
+      dataSourceId, 
+      query, 
+      targetQuery, 
+      threshold, 
+      operator,
+      validityMode,
+      numericColumn,
+      allowedFailure
+    } = req.body;
+    
     if (!name || !type || !dataSourceId || !query) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
@@ -62,6 +75,11 @@ router.post('/', authenticateToken, async (req: any, res) => {
     if (targetQuery !== undefined) indicatorData.targetQuery = targetQuery;
     if (threshold !== undefined) indicatorData.threshold = parseFloat(threshold);
     if (operator !== undefined) indicatorData.operator = operator;
+    
+    // Validity specific fields
+    if (validityMode !== undefined) indicatorData.validityMode = validityMode;
+    if (numericColumn !== undefined) indicatorData.numericColumn = numericColumn;
+    if (allowedFailure !== undefined) indicatorData.allowedFailure = parseFloat(allowedFailure);
 
     const indicator = await prisma.indicator.create({
       data: indicatorData,
@@ -107,7 +125,18 @@ router.get('/:id', authenticateToken, async (req: any, res) => {
 // PUT /api/indicators/:id
 router.put('/:id', authenticateToken, async (req: any, res) => {
   try {
-    const { description, type, dataSourceId, query, targetQuery, threshold, operator } = req.body;
+    const { 
+      description, 
+      type, 
+      dataSourceId, 
+      query, 
+      targetQuery, 
+      threshold, 
+      operator,
+      validityMode,
+      numericColumn,
+      allowedFailure
+    } = req.body;
     
     const existingIndicator = await prisma.indicator.findFirst({
       where: { 
@@ -128,6 +157,12 @@ router.put('/:id', authenticateToken, async (req: any, res) => {
     if (targetQuery !== undefined) updateData.targetQuery = targetQuery;
     if (threshold !== undefined) updateData.threshold = threshold ? parseFloat(threshold) : null;
     if (operator !== undefined) updateData.operator = operator;
+    
+    // Validity specific fields
+    if (validityMode !== undefined) updateData.validityMode = validityMode;
+    if (numericColumn !== undefined) updateData.numericColumn = numericColumn;
+    if (allowedFailure !== undefined) updateData.allowedFailure = allowedFailure ? parseFloat(allowedFailure) : null;
+    
     updateData.updatedAt = new Date();
 
     const indicator = await prisma.indicator.update({
@@ -193,7 +228,11 @@ router.post('/:id/execute', authenticateToken, async (req: any, res) => {
       dataSourceConfig,
       (indicator as any).query,
       (indicator as any).threshold || 1, // Default threshold to 1 day for freshness
-      (indicator as any).targetQuery || undefined
+      (indicator as any).targetQuery || undefined,
+      (indicator as any).validityMode || undefined,
+      (indicator as any).numericColumn || undefined,
+      (indicator as any).operator || undefined,
+      (indicator as any).allowedFailure || undefined
     );
 
     // Store execution result in database

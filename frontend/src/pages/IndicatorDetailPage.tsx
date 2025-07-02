@@ -630,6 +630,12 @@ const IndicatorDetailPage: React.FC = () => {
   const [targetQuery, setTargetQuery] = useState('');
   const [threshold, setThreshold] = useState('');
   const [operator, setOperator] = useState('gte');
+  
+  // Validity specific fields
+  const [validityMode, setValidityMode] = useState<'exists' | 'threshold'>('exists');
+  const [numericColumn, setNumericColumn] = useState('');
+  const [allowedFailure, setAllowedFailure] = useState('');
+  
   const [dataSources, setDataSources] = useState<DataSource[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -660,6 +666,12 @@ const IndicatorDetailPage: React.FC = () => {
         setTargetQuery(indicatorData.targetQuery || '');
         setThreshold(indicatorData.threshold?.toString() || '');
         setOperator(indicatorData.operator || 'gte');
+        
+        // Validity specific fields
+        setValidityMode(indicatorData.validityMode || 'exists');
+        setNumericColumn(indicatorData.numericColumn || '');
+        setAllowedFailure(indicatorData.allowedFailure?.toString() || '');
+        
         setExecutions(executionData || []);
       }
     } catch (err: any) {
@@ -671,6 +683,11 @@ const IndicatorDetailPage: React.FC = () => {
     setType(e.target.value as IndicatorType);
     if (e.target.value !== 'completeness') {
       setTargetQuery('');
+    }
+    if (e.target.value !== 'validity') {
+      setValidityMode('exists');
+      setNumericColumn('');
+      setAllowedFailure('');
     }
   };
 
@@ -688,7 +705,18 @@ const IndicatorDetailPage: React.FC = () => {
         threshold: threshold ? parseFloat(threshold) : undefined,
         operator: operator || undefined,
       };
-      if (type === 'completeness') payload.targetQuery = targetQuery;
+      
+      if (type === 'completeness') {
+        payload.targetQuery = targetQuery;
+      }
+      
+      if (type === 'validity') {
+        payload.validityMode = validityMode;
+        if (validityMode === 'threshold') {
+          payload.numericColumn = numericColumn;
+          payload.allowedFailure = allowedFailure ? parseFloat(allowedFailure) : undefined;
+        }
+      }
       
       let result;
       if (id) {
@@ -732,12 +760,20 @@ const IndicatorDetailPage: React.FC = () => {
     return Math.round((passed / executions.length) * 100);
   };
 
-  const getAverageValue = (): number => {
-    if (executions.length === 0) return 0;
+  const getAverageValue = (): string => {
+    if (executions.length === 0) return '0';
     const validValues = executions.filter(exec => exec.value !== null && exec.value !== undefined);
-    if (validValues.length === 0) return 0;
+    if (validValues.length === 0) return '0';
     const sum = validValues.reduce((acc, exec) => acc + (exec.value || 0), 0);
-    return Math.round((sum / validValues.length) * 100) / 100;
+    const average = sum / validValues.length;
+    
+    // For validity exists mode, show whole numbers (count of rows)
+    if (type === 'validity' && indicator?.validityMode === 'exists') {
+      return Math.round(average).toString();
+    }
+    
+    // For other types, show decimal places
+    return (Math.round(average * 100) / 100).toString();
   };
 
   const handleExecute = async () => {
@@ -791,15 +827,24 @@ const IndicatorDetailPage: React.FC = () => {
                   <MetricCard>
                     <MetricValue>{getAverageValue()}</MetricValue>
                     <MetricLabel>
-                      {type === 'freshness' ? 'Avg Age (days)' : 'Avg Value'}
+                      {type === 'freshness' ? 'Avg Age (days)' : 
+                       type === 'validity' && indicator?.validityMode === 'exists' ? 'Avg Invalid Rows' :
+                       type === 'validity' && indicator?.validityMode === 'threshold' ? 'Avg Failure (%)' :
+                       'Avg Value'}
                     </MetricLabel>
                   </MetricCard>
                   <MetricCard>
                     <MetricValue>
-                      {executions[0]?.value?.toFixed(2) || 'N/A'}
+                      {type === 'validity' && indicator?.validityMode === 'exists' ? 
+                        (executions[0]?.value || 'N/A') :
+                        (executions[0]?.value?.toFixed(2) || 'N/A')
+                      }
                     </MetricValue>
                     <MetricLabel>
-                      {type === 'freshness' ? 'Latest Age (days)' : 'Latest Value'}
+                      {type === 'freshness' ? 'Latest Age (days)' : 
+                       type === 'validity' && indicator?.validityMode === 'exists' ? 'Latest Invalid Rows' :
+                       type === 'validity' && indicator?.validityMode === 'threshold' ? 'Latest Failure (%)' :
+                       'Latest Value'}
                     </MetricLabel>
                   </MetricCard>
                 </MetricsGrid>
@@ -895,29 +940,80 @@ const IndicatorDetailPage: React.FC = () => {
                   </InputGroup>
                 )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <InputGroup>
-                    <Label>Threshold (optional)</Label>
-                    <Input 
-                      type="number"
-                      step="0.01"
-                      value={threshold} 
-                      onChange={e => setThreshold(e.target.value)} 
-                      placeholder="e.g. 95.0"
-                    />
-                  </InputGroup>
-                  
-                  <InputGroup>
-                    <Label>Operator</Label>
-                    <Select value={operator} onChange={e => setOperator(e.target.value)}>
-                      <option value="gte">Greater than or equal (≥)</option>
-                      <option value="lte">Less than or equal (≤)</option>
-                      <option value="gt">Greater than (&gt;)</option>
-                      <option value="lt">Less than (&lt;)</option>
-                      <option value="eq">Equal to (=)</option>
-                    </Select>
-                  </InputGroup>
-                </div>
+                {type === 'validity' && (
+                  <>
+                    <InputGroup>
+                      <Label>Validity Mode</Label>
+                      <Select 
+                        value={validityMode} 
+                        onChange={e => setValidityMode(e.target.value as 'exists' | 'threshold')}
+                        required
+                      >
+                        <option value="exists">Exists Mode (fail if query returns any rows)</option>
+                        <option value="threshold">Threshold Mode (check numeric column against threshold)</option>
+                      </Select>
+                    </InputGroup>
+
+                    {validityMode === 'threshold' && (
+                      <>
+                        <InputGroup>
+                          <Label>Numeric Column</Label>
+                          <Input 
+                            type="text"
+                            value={numericColumn} 
+                            onChange={e => setNumericColumn(e.target.value)} 
+                            placeholder="e.g. score, rating, percentage"
+                            required
+                          />
+                        </InputGroup>
+                        
+                        <InputGroup>
+                          <Label>Allowed Failure Percentage (0-100)</Label>
+                          <Input 
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            max="100"
+                            value={allowedFailure} 
+                            onChange={e => setAllowedFailure(e.target.value)} 
+                            placeholder="e.g. 5.0"
+                          />
+                        </InputGroup>
+                      </>
+                    )}
+                  </>
+                )}
+
+                {/* Threshold and Operator section - show for freshness and validity (threshold mode) */}
+                {(type === 'freshness' || (type === 'validity' && validityMode === 'threshold')) && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <InputGroup>
+                      <Label>
+                        {type === 'freshness' ? 'Threshold (days)' : 'Threshold'}
+                        {type !== 'freshness' && ' (required for threshold mode)'}
+                      </Label>
+                      <Input 
+                        type="number"
+                        step="0.01"
+                        value={threshold} 
+                        onChange={e => setThreshold(e.target.value)} 
+                        placeholder={type === 'freshness' ? 'e.g. 1.0' : 'e.g. 95.0'}
+                        required={type === 'validity' && validityMode === 'threshold'}
+                      />
+                    </InputGroup>
+                    
+                    <InputGroup>
+                      <Label>Operator</Label>
+                      <Select value={operator} onChange={e => setOperator(e.target.value)}>
+                        <option value="gte">Greater than or equal (≥)</option>
+                        <option value="lte">Less than or equal (≤)</option>
+                        <option value="gt">Greater than (&gt;)</option>
+                        <option value="lt">Less than (&lt;)</option>
+                        <option value="eq">Equal to (=)</option>
+                      </Select>
+                    </InputGroup>
+                  </div>
+                )}
                 
                 {error && <ErrorMessage>{error}</ErrorMessage>}
                 
@@ -1072,7 +1168,17 @@ const IndicatorDetailPage: React.FC = () => {
                       {exec.passed ? '✓' : '✗'}
                       <ExecutionTooltip>
                         <div>Status: {exec.passed ? 'PASSED' : 'FAILED'}</div>
-                        <div>Value: {exec.value?.toFixed(2) || 'N/A'} days</div>
+                        <div>
+                          Value: {
+                            indicator?.type === 'freshness' ? 
+                              `${exec.value?.toFixed(2) || 'N/A'} days` :
+                            indicator?.type === 'validity' && indicator.validityMode === 'exists' ?
+                              `${exec.value || 0} invalid rows` :
+                            indicator?.type === 'validity' && indicator.validityMode === 'threshold' ?
+                              `${exec.value?.toFixed(2) || 'N/A'}% failed` :
+                              `${exec.value?.toFixed(2) || 'N/A'}`
+                          }
+                        </div>
                         <div>Time: {new Date(exec.executedAt || exec.createdAt).toLocaleString()}</div>
                         {exec.error && <div>Error: {exec.error}</div>}
                       </ExecutionTooltip>
@@ -1096,11 +1202,47 @@ const IndicatorDetailPage: React.FC = () => {
                       </ExecutionHeader>
                       <ExecutionResult>
                         <div style={{ marginBottom: '0.5rem' }}>
-                          <strong>Value:</strong> {executions[0].value?.toFixed(2) || 'N/A'} days old
-                          {indicator?.threshold && (
-                            <span style={{ marginLeft: '1rem', color: '#8892b0' }}>
-                              (Threshold: {indicator.threshold} days)
-                            </span>
+                          <strong>Value:</strong> 
+                          {indicator?.type === 'freshness' && (
+                            <>
+                              {executions[0].value?.toFixed(2) || 'N/A'} days old
+                              {indicator?.threshold && (
+                                <span style={{ marginLeft: '1rem', color: '#8892b0' }}>
+                                  (Threshold: {indicator.threshold} days)
+                                </span>
+                              )}
+                            </>
+                          )}
+                          {indicator?.type === 'validity' && (
+                            <>
+                              {indicator.validityMode === 'exists' ? (
+                                <>
+                                  {executions[0].value || 0} invalid rows found
+                                  <span style={{ marginLeft: '1rem', color: '#8892b0' }}>
+                                    (Expected: 0 rows)
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  {executions[0].value?.toFixed(2) || 'N/A'}% rows failed
+                                  {indicator?.allowedFailure !== undefined && (
+                                    <span style={{ marginLeft: '1rem', color: '#8892b0' }}>
+                                      (Max allowed: {indicator.allowedFailure}%)
+                                    </span>
+                                  )}
+                                </>
+                              )}
+                            </>
+                          )}
+                          {indicator?.type !== 'freshness' && indicator?.type !== 'validity' && (
+                            <>
+                              {executions[0].value?.toFixed(2) || 'N/A'}
+                              {indicator?.threshold && (
+                                <span style={{ marginLeft: '1rem', color: '#8892b0' }}>
+                                  (Threshold: {indicator.threshold})
+                                </span>
+                              )}
+                            </>
                           )}
                         </div>
                         {executions[0].error && (
@@ -1111,6 +1253,12 @@ const IndicatorDetailPage: React.FC = () => {
                         <div style={{ fontSize: '0.75rem', color: '#8892b0', marginTop: '0.5rem' }}>
                           {indicator?.type === 'freshness' && 
                             `Freshness check: Data is ${executions[0].value?.toFixed(2) || 'unknown'} days old ${executions[0].passed ? '(Fresh ✓)' : '(Stale ✗)'}`
+                          }
+                          {indicator?.type === 'validity' && indicator.validityMode === 'exists' &&
+                            `Exists check: ${executions[0].value || 0} invalid rows found ${executions[0].passed ? '(Valid ✓)' : '(Invalid ✗)'}`
+                          }
+                          {indicator?.type === 'validity' && indicator.validityMode === 'threshold' &&
+                            `Threshold check: ${executions[0].value?.toFixed(2) || 'unknown'}% failure rate ${executions[0].passed ? '(Valid ✓)' : '(Invalid ✗)'}`
                           }
                         </div>
                       </ExecutionResult>

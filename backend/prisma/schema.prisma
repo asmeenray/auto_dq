@@ -67,6 +67,11 @@ model Indicator {
   threshold   Float?
   operator    String? // gt, lt, eq, gte, lte
 
+  // Validity specific fields
+  validityMode    String? // exists, threshold
+  numericColumn   String? // For threshold validity mode
+  allowedFailure  Float?  // Allowed failure percentage (0-100)
+
   dataSourceId String
   dataSource   DataSource @relation(fields: [dataSourceId], references: [id])
 
