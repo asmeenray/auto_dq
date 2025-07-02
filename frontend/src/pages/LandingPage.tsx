@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import styled, { keyframes, createGlobalStyle } from 'styled-components'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
-import { loginUser, registerUser } from '../store/slices/authSlice'
+import { loginUser, registerUser, clearAllAuthData } from '../store/slices/authSlice'
 
 // Global styles for animations
 const GlobalStyle = createGlobalStyle`
@@ -781,6 +781,21 @@ const LandingPage: React.FC = () => {
                     <div>demo@autodq.com / demo</div>
                     <div>admin@autodq.com / password</div>
                   </DemoCredentials>
+                  
+                  {/* Debug: Clear Session Button */}
+                  <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #4b5563' }}>
+                    <ToggleButton 
+                      type="button"
+                      onClick={() => {
+                        dispatch(clearAllAuthData());
+                        resetForm();
+                        window.location.reload();
+                      }}
+                      style={{ color: '#ef4444', fontSize: '0.75rem' }}
+                    >
+                      [DEBUG] CLEAR_ALL_SESSION_DATA
+                    </ToggleButton>
+                  </div>
                 </DemoInfo>
               </TerminalContent>
             </TerminalWindow>
