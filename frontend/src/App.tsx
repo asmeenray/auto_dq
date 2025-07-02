@@ -16,11 +16,32 @@ const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading } = useAppSelector((state) => state.auth)
 
   useEffect(() => {
-    // Check for existing token on app load
-    const token = localStorage.getItem('token')
-    if (token) {
-      dispatch(getCurrentUser())
-    }
+    // Check for existing valid session on app load
+    const checkSession = () => {
+      try {
+        const sessionData = localStorage.getItem('session');
+        if (sessionData) {
+          const parsed = JSON.parse(sessionData);
+          // Check if session is not expired
+          if (Date.now() <= parsed.expiresAt) {
+            dispatch(getCurrentUser());
+            return;
+          }
+        }
+        
+        // Fallback: check for old token system
+        const token = localStorage.getItem('token');
+        if (token) {
+          dispatch(getCurrentUser());
+        }
+      } catch (error) {
+        // If there's any error parsing session data, clear it
+        localStorage.removeItem('session');
+        localStorage.removeItem('token');
+      }
+    };
+
+    checkSession();
   }, [dispatch])
 
   if (isLoading) {

@@ -15,9 +15,9 @@ const MOCK_USER: User = {
 }
 
 const initialState: ExtendedAuthState = {
-  isAuthenticated: true, // Auto-authenticate for demo
-  user: MOCK_USER, // Set mock user by default
-  token: 'demo-token-' + Date.now(), // Set a demo token
+  isAuthenticated: false, // Start as not authenticated
+  user: null, // No user by default
+  token: null, // No token by default
   isLoading: false,
   error: undefined,
 }
@@ -50,6 +50,43 @@ const findUser = (email: string, password: string) => {
   return users.find(u => u.email === email && u.password === password);
 }
 
+// Session management helpers
+const SESSION_DURATION = 5 * 60 * 60 * 1000; // 5 hours in milliseconds
+
+const setSessionData = (token: string, user: User) => {
+  const sessionData = {
+    token,
+    user,
+    expiresAt: Date.now() + SESSION_DURATION
+  };
+  localStorage.setItem('session', JSON.stringify(sessionData));
+  localStorage.setItem('token', token); // Keep for backward compatibility
+}
+
+const getSessionData = () => {
+  try {
+    const sessionData = localStorage.getItem('session');
+    if (!sessionData) return null;
+    
+    const parsed = JSON.parse(sessionData);
+    
+    // Check if session is expired
+    if (Date.now() > parsed.expiresAt) {
+      clearSessionData();
+      return null;
+    }
+    
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+const clearSessionData = () => {
+  localStorage.removeItem('session');
+  localStorage.removeItem('token');
+}
+
 // Async thunks
 export const loginUser = createAsyncThunk(
   'auth/login',
@@ -60,22 +97,22 @@ export const loginUser = createAsyncThunk(
       if ((credentials.email === 'demo@autodq.com' && credentials.password === 'demo') ||
           (credentials.email === 'admin@autodq.com' && credentials.password === 'password')) {
         const token = 'demo-token-' + Date.now();
-        localStorage.setItem('token', token);
+        const user = MOCK_USER;
+        setSessionData(token, user);
         
-        return { token, user: MOCK_USER };
+        return { token, user };
       }
       
       // Check registered users
       const registeredUser = findUser(credentials.email, credentials.password);
       if (registeredUser) {
         const token = 'demo-token-' + Date.now();
-        localStorage.setItem('token', token);
-        
         const user = {
           ...MOCK_USER,
           email: registeredUser.email,
           name: registeredUser.name
         };
+        setSessionData(token, user);
         
         return { token, user };
       }
@@ -117,13 +154,12 @@ export const registerUser = createAsyncThunk(
       
       // Auto-login after registration with mock user
       const token = 'demo-token-' + Date.now();
-      localStorage.setItem('token', token);
-      
       const newUser = {
         ...MOCK_USER,
         email: userData.email,
         name: userName
       };
+      setSessionData(token, newUser);
       
       return { token, user: newUser };
     } catch (error: any) {
@@ -136,6 +172,13 @@ export const getCurrentUser = createAsyncThunk(
   'auth/getCurrentUser',
   async (_, { rejectWithValue }) => {
     try {
+      // Check if we have a valid session
+      const sessionData = getSessionData();
+      if (sessionData) {
+        return sessionData.user;
+      }
+      
+      // Fallback: check old token system for backward compatibility
       const token = localStorage.getItem('token');
       if (!token) {
         return rejectWithValue('No token found');
@@ -156,7 +199,7 @@ export const getCurrentUser = createAsyncThunk(
 export const logoutUser = createAsyncThunk(
   'auth/logout',
   async () => {
-    localStorage.removeItem('token');
+    clearSessionData();
     return null;
   }
 )
@@ -170,6 +213,13 @@ const authSlice = createSlice({
     },
     setAuthenticated: (state, action: PayloadAction<boolean>) => {
       state.isAuthenticated = action.payload;
+    },
+    clearAllAuthData: (state) => {
+      state.isAuthenticated = false;
+      state.user = null;
+      state.token = null;
+      state.error = undefined;
+      clearSessionData();
     },
   },
   extraReducers: (builder) => {
@@ -223,7 +273,7 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
         state.user = null;
         state.token = null;
-        localStorage.removeItem('token');
+        clearSessionData();
       })
       // Logout
       .addCase(logoutUser.fulfilled, (state) => {
@@ -235,5 +285,5 @@ const authSlice = createSlice({
   },
 })
 
-export const { clearError, setAuthenticated } = authSlice.actions
+export const { clearError, setAuthenticated, clearAllAuthData } = authSlice.actions
 export default authSlice.reducer
