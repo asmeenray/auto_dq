@@ -7,20 +7,20 @@ interface ExtendedAuthState extends AuthState {
   error?: string;
 }
 
-const initialState: ExtendedAuthState = {
-  isAuthenticated: false,
-  user: null,
-  token: null, // Force no token initially
-  isLoading: false,
-  error: undefined,
-}
-
 // For demo purposes, we'll create a mock user since we don't have full auth yet
 const MOCK_USER: User = {
   id: 'demo-user-1',
   email: 'demo@autodq.com',
   name: 'Demo User',
   createdAt: new Date().toISOString(),
+}
+
+const initialState: ExtendedAuthState = {
+  isAuthenticated: true, // Auto-authenticate for demo
+  user: MOCK_USER, // Set mock user by default
+  token: 'demo-token-' + Date.now(), // Set a demo token
+  isLoading: false,
+  error: undefined,
 }
 
 // Async thunks

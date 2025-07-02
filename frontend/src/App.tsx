@@ -8,6 +8,7 @@ import { getCurrentUser } from './store/slices/authSlice'
 // Pages
 import LandingPage from './pages/LandingPage'
 import DashboardPage from './pages/DashboardPage'
+import AddDataSourcePage from './pages/AddDataSourcePage'
 
 // App Component that uses Redux
 const AppContent: React.FC = () => {
@@ -40,6 +41,10 @@ const AppContent: React.FC = () => {
         <Route 
           path="/dashboard" 
           element={<DashboardPage />} 
+        />
+        <Route 
+          path="/add-data-source" 
+          element={<AddDataSourcePage />} 
         />
       </Routes>
     </Router>

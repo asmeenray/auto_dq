@@ -1,4 +1,4 @@
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:4000/api';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001/api';
 
 export interface ApiResponse<T> {
   data?: T;
@@ -95,8 +95,8 @@ class ApiClient {
     return this.delete<{ message: string }>(`/data-sources/${id}`);
   }
 
-  async testDataSourceConnection(id: string) {
-    return this.post<{ success: boolean; message: string }>(`/data-sources/${id}/test`, {});
+  async testDataSourceConnection(connectionData: any) {
+    return this.post<{ success: boolean; message: string; error?: string }>('/data-sources/test-connection', connectionData);
   }
 
   // Indicators API

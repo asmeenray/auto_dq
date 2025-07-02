@@ -9,6 +9,7 @@ const execAsync = promisify(exec);
 // Import services
 import { DatabaseService } from './services/DatabaseService';
 import { ExecutionService } from './services/ExecutionService';
+import { DatabaseConnector } from './services/DatabaseConnector';
 
 async function initializePrisma() {
   console.log('🔄 Generating Prisma client...');
@@ -22,9 +23,9 @@ async function initializePrisma() {
 
 async function startServer() {
   // Initialize Prisma first
-  await initializePrisma();
+  // await initializePrisma();
 
-  const prisma = new PrismaClient();
+  // const prisma = new PrismaClient();
   const app = express();
 
   // Initialize services
@@ -48,16 +49,21 @@ app.get('/api/hello', (req, res) => {
 // Data Sources routes
 app.get('/api/data-sources', async (req, res) => {
   try {
-    const dataSources = await prisma.dataSource.findMany({
-      include: {
-        user: {
-          select: { id: true, name: true, email: true }
-        },
-        indicators: {
-          select: { id: true, name: true, description: true }
-        }
+    // Mock data for testing (replace with actual database call once DB is working)
+    const dataSources = [
+      {
+        id: '1',
+        name: 'Demo Redshift',
+        type: 'redshift',
+        host: 'demo-cluster.redshift.amazonaws.com',
+        port: 5439,
+        database: 'demo_db',
+        username: 'demo_user',
+        createdAt: new Date().toISOString(),
+        user: { id: '1', name: 'Demo User', email: 'demo@example.com' },
+        indicators: []
       }
-    });
+    ];
     res.json({ dataSources });
   } catch (error) {
     console.error('Error fetching data sources:', error);
@@ -65,47 +71,84 @@ app.get('/api/data-sources', async (req, res) => {
   }
 });
 
-app.post('/api/data-sources', async (req, res) => {
+app.post('/api/data-sources/test-connection', async (req, res) => {
   try {
-    const { name, type, host, port, database, username, password, userId } = req.body;
+    const { type, host, port, database, schema, username, password, warehouse, role, account } = req.body;
     
     // Validate required fields
-    if (!name || !type || !host || !port || !database || !username || !userId) {
+    if (!type || !host || !port || !database || !username || !password) {
+      return res.status(400).json({ error: 'Missing required connection fields' });
+    }
+
+    // Test connection using new DatabaseConnector
+    const result = await DatabaseConnector.testConnection({
+      type: type as 'redshift' | 'snowflake',
+      host,
+      port: parseInt(port),
+      database,
+      schema,
+      username,
+      password,
+      warehouse,
+      role,
+      account
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error testing connection:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Connection test failed',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.post('/api/data-sources', async (req, res) => {
+  try {
+    const { name, type, host, port, database, schema, username, password, userId, warehouse, role, account } = req.body;
+    
+    // Validate required fields
+    if (!name || !type || !host || !port || !database || !username) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Test connection before saving
-    const testConnection = await databaseService.testConnection({
-      id: 'test',
-      type: type as 'mysql' | 'postgresql' | 'redshift',
+    // Test connection before saving using new DatabaseConnector
+    const connectionTest = await DatabaseConnector.testConnection({
+      type: type as 'redshift' | 'snowflake',
+      host,
+      port: parseInt(port),
+      database,
+      schema,
+      username,
+      password,
+      warehouse,
+      role,
+      account
+    });
+
+    if (!connectionTest.success) {
+      return res.status(400).json({ 
+        error: 'Failed to connect to database',
+        message: connectionTest.message,
+        details: connectionTest.error
+      });
+    }
+
+    // Mock response for testing (replace with actual database save once DB is working)
+    const dataSource = {
+      id: Date.now().toString(),
+      name,
+      type,
       host,
       port: parseInt(port),
       database,
       username,
-      password
-    });
-
-    if (!testConnection) {
-      return res.status(400).json({ error: 'Failed to connect to database' });
-    }
-
-    const dataSource = await prisma.dataSource.create({
-      data: {
-        name,
-        type,
-        host,
-        port: parseInt(port),
-        database,
-        username,
-        password,
-        userId
-      },
-      include: {
-        user: {
-          select: { id: true, name: true, email: true }
-        }
-      }
-    });
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      user: { id: userId || '1', name: 'Demo User', email: 'demo@example.com' }
+    };
 
     res.status(201).json({ dataSource });
   } catch (error) {
@@ -114,6 +157,12 @@ app.post('/api/data-sources', async (req, res) => {
   }
 });
 
+app.put('/api/data-sources/:id', async (req, res) => {
+  // Temporarily disabled for testing
+  res.status(501).json({ error: 'Database not configured yet' });
+});
+
+/*
 app.put('/api/data-sources/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -143,6 +192,7 @@ app.put('/api/data-sources/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to update data source' });
   }
 });
+*/
 
 app.delete('/api/data-sources/:id', async (req, res) => {
   try {
@@ -512,7 +562,7 @@ app.get('/api/dashboard/stats', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 3001;
 
   app.listen(PORT, () => {
     console.log(`🚀 autoDQ Backend ready at http://localhost:${PORT}`);

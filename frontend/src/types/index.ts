@@ -44,9 +44,14 @@ export interface CreateDataSourceInput {
   host: string;
   port: number;
   database: string;
+  schema?: string;
   username: string;
   password: string;
   userId: string;
+  // Snowflake specific fields
+  warehouse?: string;
+  role?: string;
+  account?: string;
 }
 
 export interface Indicator {

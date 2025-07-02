@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import styled, { keyframes } from 'styled-components'
+import { useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { loginUser } from '../store/slices/authSlice'
 import { apiClient } from '../utils/api-client'
@@ -553,6 +554,7 @@ const ExecutionStatus = styled.div<{ passed: boolean }>`
 
 const DashboardPage: React.FC = () => {
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
   const { isAuthenticated, isLoading, error, user } = useAppSelector(state => state.auth)
   
   const [loginForm, setLoginForm] = useState<LoginFormData>({
@@ -750,7 +752,7 @@ const DashboardPage: React.FC = () => {
         <Section>
           <SectionHeader>
             <SectionTitle>Data Sources</SectionTitle>
-            <AddButton>
+            <AddButton onClick={() => navigate('/add-data-source')}>
               + Add Data Source
             </AddButton>
           </SectionHeader>
@@ -781,7 +783,7 @@ const DashboardPage: React.FC = () => {
               <EmptyState>
                 <EmptyStateTitle>No data sources configured</EmptyStateTitle>
                 <EmptyStateText>Add a data source to start monitoring data quality</EmptyStateText>
-                <AddButton>Add Your First Data Source</AddButton>
+                <AddButton onClick={() => navigate('/add-data-source')}>Add Your First Data Source</AddButton>
               </EmptyState>
             </ContentCard>
           )}
