@@ -145,8 +145,9 @@ async function startServer() {
     }
   });
 
-  // Start server
-  const PORT = process.env.PORT || process.env.API_PORT || 3001;
+  // Start server - explicitly use API_PORT from .env file, fallback to 3001
+  const PORT = process.env.API_PORT || 3001;
+  console.log(`🔧 Using port: ${PORT} (API_PORT: ${process.env.API_PORT}, PORT: ${process.env.PORT})`);
   app.listen(PORT, () => {
     console.log(`🚀 autoDQ Backend server is running on port ${PORT}`);
     console.log(`📡 Health check: http://localhost:${PORT}/health`);
