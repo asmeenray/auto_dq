@@ -1,9 +1,8 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { Provider } from 'react-redux'
 import { store } from './store/store'
-import { useAppDispatch, useAppSelector } from './store/hooks'
-import { getCurrentUser } from './store/slices/authSlice'
+import { useAppSelector } from './store/hooks'
 
 // Pages
 import LandingPage from './pages/LandingPage'
@@ -12,37 +11,7 @@ import AddDataSourcePage from './pages/AddDataSourcePage'
 
 // App Component that uses Redux
 const AppContent: React.FC = () => {
-  const dispatch = useAppDispatch()
   const { isAuthenticated, isLoading } = useAppSelector((state) => state.auth)
-
-  useEffect(() => {
-    // Check for existing valid session on app load
-    const checkSession = () => {
-      try {
-        const sessionData = localStorage.getItem('session');
-        if (sessionData) {
-          const parsed = JSON.parse(sessionData);
-          // Check if session is not expired
-          if (Date.now() <= parsed.expiresAt) {
-            dispatch(getCurrentUser());
-            return;
-          }
-        }
-        
-        // Fallback: check for old token system
-        const token = localStorage.getItem('token');
-        if (token) {
-          dispatch(getCurrentUser());
-        }
-      } catch (error) {
-        // If there's any error parsing session data, clear it
-        localStorage.removeItem('session');
-        localStorage.removeItem('token');
-      }
-    };
-
-    checkSession();
-  }, [dispatch])
 
   if (isLoading) {
     return (

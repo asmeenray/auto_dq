@@ -78,62 +78,50 @@ class ApiClient {
     });
   }
 
-  // --- DEMO LOCALSTORAGE DATA SOURCE PERSISTENCE ---
-  private getStoredDataSources(): any[] {
-    try {
-      const sources = localStorage.getItem('demo-data-sources');
-      return sources ? JSON.parse(sources) : [];
-    } catch {
-      return [];
-    }
-  }
-
-  private storeDataSources(sources: any[]) {
-    localStorage.setItem('demo-data-sources', JSON.stringify(sources));
-  }
-
+  // --- DATA SOURCE API METHODS ---
   async getDataSources() {
-    // For demo: always use localStorage
-    return {
-      data: { dataSources: this.getStoredDataSources() }
-    };
+    return this.request<{ dataSources: any[] }>('/data-sources');
   }
 
   async createDataSource(dataSource: any) {
-    try {
-      const sources = this.getStoredDataSources();
-      const newSource = {
-        ...dataSource,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString(),
-        indicators: [],
-      };
-      sources.push(newSource);
-      this.storeDataSources(sources);
-      return { data: { dataSource: newSource } };
-    } catch (error) {
-      return { error: error instanceof Error ? error.message : 'Failed to create data source' };
-    }
+    return this.request<{ dataSource: any }>('/data-sources', {
+      method: 'POST',
+      body: JSON.stringify(dataSource),
+    });
+  }
+
+  async getDataSource(id: string) {
+    return this.request<{ dataSource: any }>(`/data-sources/${id}`);
+  }
+
+  async updateDataSource(id: string, dataSource: any) {
+    return this.request<{ dataSource: any }>(`/data-sources/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(dataSource),
+    });
   }
 
   async deleteDataSource(id: string) {
-    let sources = this.getStoredDataSources();
-    sources = sources.filter((s: any) => s.id !== id);
-    this.storeDataSources(sources);
-    return { data: { message: 'Deleted' } };
+    return this.request<{ message: string }>(`/data-sources/${id}`, {
+      method: 'DELETE',
+    });
   }
 
   async testDataSourceConnection(connectionData: any) {
-    return this.post<{ success: boolean; message: string; error?: string }>('/data-sources/test-connection', connectionData);
+    return this.request<{ success: boolean; message: string; error?: string }>('/data-sources/test-connection', {
+      method: 'POST',
+      body: JSON.stringify(connectionData),
+    });
   }
 
   async getDashboardStats() {
-    // Mock dashboard stats for demo
-    const sources = this.getStoredDataSources();
+    // This would be a real API call in production
+    // For now, return basic stats based on user's data sources
+    const dataSources = await this.getDataSources();
     return {
       data: {
         stats: {
-          totalDataSources: sources.length,
+          totalDataSources: dataSources.data?.dataSources?.length || 0,
           totalIndicators: 0,
           totalExecutions: 0,
           passedExecutions: 0,
@@ -146,43 +134,15 @@ class ApiClient {
   }
 
   async getIndicators() {
-    // Mock indicators for demo
-    return {
-      data: { indicators: [] }
-    };
+    // This would be a real API call in production
+    return this.request<{ indicators: any[] }>('/indicators');
   }
 
   async executeIndicator(indicatorId: string) {
-    // Mock execution for demo
-    return {
-      data: { success: true, message: 'Indicator executed (demo)' }
-    };
-  }
-
-  async getDataSource(id: string) {
-    const sources = this.getStoredDataSources();
-    const source = sources.find((s: any) => s.id === id);
-    if (source) {
-      return { data: { dataSource: source } };
-    } else {
-      return { error: 'Data source not found' };
-    }
-  }
-
-  async updateDataSource(id: string, dataSource: any) {
-    try {
-      const sources = this.getStoredDataSources();
-      const index = sources.findIndex((s: any) => s.id === id);
-      if (index >= 0) {
-        sources[index] = { ...sources[index], ...dataSource, id, updatedAt: new Date().toISOString() };
-        this.storeDataSources(sources);
-        return { data: { dataSource: sources[index] } };
-      } else {
-        return { error: 'Data source not found' };
-      }
-    } catch (error) {
-      return { error: error instanceof Error ? error.message : 'Failed to update data source' };
-    }
+    // This would be a real API call in production
+    return this.request<{ success: boolean; message: string }>(`/indicators/${indicatorId}/execute`, {
+      method: 'POST',
+    });
   }
 }
 

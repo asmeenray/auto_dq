@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import styled, { keyframes } from 'styled-components'
 import { useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
-import { loginUser, logoutUser } from '../store/slices/authSlice'
+import { loginUser, logout } from '../store/slices/authSlice'
 import { apiClient } from '../utils/api-client'
 import { DashboardStats, DataSource, Indicator, Execution } from '../types'
 
@@ -616,7 +616,7 @@ const DashboardPage: React.FC = () => {
   }
 
   const handleLogout = async () => {
-    await dispatch(logoutUser())
+    await dispatch(logout())
     navigate('/')
   }
 

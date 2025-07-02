@@ -28,12 +28,23 @@ model User {
 model DataSource {
   id       String @id @default(cuid())
   name     String
-  type     String // mysql, postgresql, redshift
+  type     String // redshift, snowflake, bigquery
   host     String
   port     Int
   database String
+  schema   String?
   username String
   password String
+
+  // Snowflake specific fields
+  warehouse String?
+  role      String?
+  account   String?
+
+  // BigQuery specific fields
+  projectId String?
+  keyFile   String? // JSON service account key
+  location  String?
 
   userId String
   user   User   @relation(fields: [userId], references: [id])
