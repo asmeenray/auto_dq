@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
+import { IndicatorExecutionService } from '../services/IndicatorExecutionService';
+import { DatabaseConnection } from '../services/DatabaseConnector';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -102,8 +104,124 @@ router.get('/:id', authenticateToken, async (req: any, res) => {
   }
 });
 
+// PUT /api/indicators/:id
+router.put('/:id', authenticateToken, async (req: any, res) => {
+  try {
+    const { description, type, dataSourceId, query, targetQuery, threshold, operator } = req.body;
+    
+    const existingIndicator = await prisma.indicator.findFirst({
+      where: { 
+        id: req.params.id,
+        userId: req.user.userId 
+      }
+    });
+    
+    if (!existingIndicator) {
+      return res.status(404).json({ error: 'Indicator not found' });
+    }
+
+    // Build update data with proper typing
+    const updateData: any = {};
+    if (description !== undefined) updateData.description = description;
+    if (dataSourceId !== undefined) updateData.dataSourceId = dataSourceId;
+    if (query !== undefined) updateData.query = query;
+    if (targetQuery !== undefined) updateData.targetQuery = targetQuery;
+    if (threshold !== undefined) updateData.threshold = threshold ? parseFloat(threshold) : null;
+    if (operator !== undefined) updateData.operator = operator;
+    updateData.updatedAt = new Date();
+
+    const indicator = await prisma.indicator.update({
+      where: { id: req.params.id },
+      data: updateData,
+      include: {
+        dataSource: true,
+        executions: {
+          orderBy: { executedAt: 'desc' },
+          take: 10
+        }
+      }
+    });
+    
+    res.json({ indicator });
+  } catch (error) {
+    console.error('Error updating indicator:', error);
+    res.status(500).json({ error: 'Failed to update indicator' });
+  }
+});
+
 // POST /api/indicators/:id/execute
 router.post('/:id/execute', authenticateToken, async (req: any, res) => {
+  try {
+    const indicator = await prisma.indicator.findFirst({
+      where: { 
+        id: req.params.id,
+        userId: req.user.userId 
+      },
+      include: {
+        dataSource: true
+      }
+    });
+    
+    if (!indicator) {
+      return res.status(404).json({ error: 'Indicator not found' });
+    }
+
+    console.log(`🚀 Executing ${(indicator as any).type} indicator: ${indicator.name}`);
+
+    // Prepare data source configuration
+    const dataSourceConfig: DatabaseConnection = {
+      type: indicator.dataSource.type as 'redshift' | 'snowflake' | 'bigquery',
+      host: indicator.dataSource.host,
+      port: indicator.dataSource.port,
+      database: indicator.dataSource.database,
+      schema: indicator.dataSource.schema || undefined,
+      username: indicator.dataSource.username,
+      password: indicator.dataSource.password,
+      // Snowflake specific
+      warehouse: indicator.dataSource.warehouse || undefined,
+      role: indicator.dataSource.role || undefined,
+      account: indicator.dataSource.account || undefined,
+      // BigQuery specific
+      projectId: indicator.dataSource.projectId || undefined,
+      keyFile: indicator.dataSource.keyFile || undefined,
+      location: indicator.dataSource.location || undefined,
+    };
+
+    // Execute the indicator
+    const executionResult = await IndicatorExecutionService.executeIndicator(
+      (indicator as any).type,
+      dataSourceConfig,
+      (indicator as any).query,
+      (indicator as any).threshold || 1, // Default threshold to 1 day for freshness
+      (indicator as any).targetQuery || undefined
+    );
+
+    // Store execution result in database
+    const execution = await prisma.execution.create({
+      data: {
+        indicatorId: indicator.id,
+        value: executionResult.value || 0,
+        passed: executionResult.passed,
+        error: executionResult.error || null,
+        executedAt: new Date()
+      }
+    });
+
+    console.log(`✅ Execution completed: ${executionResult.passed ? 'PASSED' : 'FAILED'} (value: ${executionResult.value})`);
+
+    res.json({ 
+      success: true, 
+      execution,
+      result: executionResult
+    });
+  } catch (error) {
+    console.error('Error executing indicator:', error);
+    res.status(500).json({ error: 'Failed to execute indicator' });
+  }
+});
+
+// DELETE /api/indicators/:id
+router.delete('/:id', authenticateToken, async (req: any, res) => {
   try {
     const indicator = await prisma.indicator.findFirst({
       where: { 
@@ -115,27 +233,21 @@ router.post('/:id/execute', authenticateToken, async (req: any, res) => {
     if (!indicator) {
       return res.status(404).json({ error: 'Indicator not found' });
     }
-    
-    // Mock execution - in real implementation, you'd run the query against the data source
-    const mockResult = {
-      value: Math.random() * 100,
-      timestamp: new Date().toISOString(),
-      status: 'success'
-    };
-    
-    const execution = await prisma.execution.create({
-      data: {
-        indicatorId: indicator.id,
-        value: mockResult.value,
-        passed: mockResult.value > 50, // Mock pass/fail logic
-        executedAt: new Date()
-      }
+
+    // Delete all executions first (due to foreign key constraint)
+    await prisma.execution.deleteMany({
+      where: { indicatorId: req.params.id }
     });
-    
-    res.json({ success: true, execution });
+
+    // Delete the indicator
+    await prisma.indicator.delete({
+      where: { id: req.params.id }
+    });
+
+    res.json({ success: true, message: 'Indicator deleted successfully' });
   } catch (error) {
-    console.error('Error executing indicator:', error);
-    res.status(500).json({ error: 'Failed to execute indicator' });
+    console.error('Error deleting indicator:', error);
+    res.status(500).json({ error: 'Failed to delete indicator' });
   }
 });
 

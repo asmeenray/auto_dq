@@ -488,6 +488,39 @@ const ActionButton = styled.button`
   }
 `
 
+const DeleteButton = styled.button`
+  background: none;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 60px;
+  position: relative;
+  z-index: 10;
+  margin-left: 0.5rem;
+  
+  &:hover {
+    color: #fff;
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.8);
+  }
+  
+  &:active {
+    transform: translateY(1px);
+  }
+`
+
+const ButtonGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 2;
+  position: relative;
+`
+
 const EmptyState = styled.div`
   text-align: center;
   padding: 3rem 1.5rem;
@@ -629,6 +662,18 @@ const DashboardPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to execute indicator:', error)
+    }
+  }
+
+  const handleDeleteIndicator = async (indicatorId: string) => {
+    if (window.confirm('Are you sure you want to delete this indicator? This will also delete all execution history.')) {
+      try {
+        await apiClient.deleteIndicator(indicatorId)
+        // Reload dashboard data to reflect the deletion
+        loadDashboardData()
+      } catch (error) {
+        console.error('Failed to delete indicator:', error)
+      }
     }
   }
 
@@ -844,7 +889,14 @@ const DashboardPage: React.FC = () => {
           
           {indicators.length > 0 ? (
             indicators.map((indicator) => (
-              <ContentCard key={indicator.id}>
+              <ContentCard 
+                key={indicator.id} 
+                onClick={() => {
+                  console.log('Indicator card clicked:', indicator.id);
+                  navigate(`/indicator/${indicator.id}`);
+                }}
+                style={{ cursor: 'pointer' }}
+              >
                 <CardContent>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ flex: 1 }}>
@@ -867,9 +919,20 @@ const DashboardPage: React.FC = () => {
                       )}
                     </div>
                     
-                    <ActionButton onClick={() => executeIndicator(indicator.id)}>
-                      Execute
-                    </ActionButton>
+                    <ButtonGroup>
+                      <ActionButton onClick={(e) => {
+                        e.stopPropagation();
+                        executeIndicator(indicator.id);
+                      }}>
+                        Execute
+                      </ActionButton>
+                      <DeleteButton onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteIndicator(indicator.id);
+                      }}>
+                        Delete
+                      </DeleteButton>
+                    </ButtonGroup>
                   </div>
                 </CardContent>
               </ContentCard>

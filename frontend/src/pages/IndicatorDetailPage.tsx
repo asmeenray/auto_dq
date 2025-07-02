@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DataSource, Indicator, IndicatorType, IndicatorExecution } from '../types';
-import { getDataSources, createIndicator, executeIndicator, getIndicatorDetails } from '../utils/api-client';
+import { getDataSources, createIndicator, updateIndicator, executeIndicator, getIndicatorDetails } from '../utils/api-client';
 import styled, { keyframes } from 'styled-components';
 
 const float = keyframes`
@@ -166,6 +166,21 @@ const Input = styled.input`
   
   &::placeholder {
     color: #6b7280;
+  }
+`;
+
+const ReadonlyInput = styled.input`
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(138, 146, 176, 0.2);
+  border-radius: 0.5rem;
+  color: #8892b0;
+  font-size: 0.875rem;
+  cursor: not-allowed;
+  
+  &:focus {
+    outline: none;
   }
 `;
 
@@ -438,6 +453,96 @@ const StatusBadge = styled.span<{ status: 'healthy' | 'warning' | 'critical' | '
   }}
 `;
 
+const ExecutionGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+  margin: 1rem 0;
+`;
+
+const ExecutionGridItem = styled.div<{ status: 'passed' | 'failed' | 'unknown' }>`
+  aspect-ratio: 1;
+  border-radius: 0.375rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  
+  ${props => {
+    switch (props.status) {
+      case 'passed':
+        return `
+          background: rgba(16, 185, 129, 0.2);
+          color: #10b981;
+          border: 1px solid rgba(16, 185, 129, 0.4);
+          
+          &:hover {
+            background: rgba(16, 185, 129, 0.3);
+            transform: scale(1.05);
+          }
+        `;
+      case 'failed':
+        return `
+          background: rgba(248, 113, 113, 0.2);
+          color: #f87171;
+          border: 1px solid rgba(248, 113, 113, 0.4);
+          
+          &:hover {
+            background: rgba(248, 113, 113, 0.3);
+            transform: scale(1.05);
+          }
+        `;
+      default:
+        return `
+          background: rgba(138, 146, 176, 0.2);
+          color: #8892b0;
+          border: 1px solid rgba(138, 146, 176, 0.3);
+          
+          &:hover {
+            background: rgba(138, 146, 176, 0.3);
+            transform: scale(1.05);
+          }
+        `;
+    }
+  }}
+`;
+
+const ExecutionTooltip = styled.div`
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.9);
+  }
+  
+  ${ExecutionGridItem}:hover & {
+    opacity: 1;
+  }
+`;
+
 const ChartContainer = styled.div`
   background: rgba(0, 0, 0, 0.3);
   border-radius: 0.5rem;
@@ -494,7 +599,9 @@ const TabList = styled.div`
   margin-bottom: 1rem;
 `;
 
-const Tab = styled.button<{ active: boolean }>`
+const Tab = styled.button.withConfig({
+  shouldForwardProp: (prop) => prop !== 'active',
+})<{ active: boolean }>`
   padding: 0.75rem 1rem;
   border: none;
   background: none;
@@ -583,8 +690,21 @@ const IndicatorDetailPage: React.FC = () => {
       };
       if (type === 'completeness') payload.targetQuery = targetQuery;
       
-      const created = await createIndicator(payload);
-      setIndicator(created);
+      let result;
+      if (id) {
+        // Update existing indicator
+        result = await updateIndicator(id, payload);
+        setIndicator(result);
+        // Reload executions to ensure they're up to date
+        const details = await getIndicatorDetails(id);
+        setExecutions(details?.executions || []);
+      } else {
+        // Create new indicator
+        result = await createIndicator(payload);
+        setIndicator(result);
+        // Navigate to the edit page for the newly created indicator
+        navigate(`/indicator/${result.id}`, { replace: true });
+      }
       setError(null);
     } catch (err: any) {
       setError(err.message || 'Failed to save indicator');
@@ -614,8 +734,10 @@ const IndicatorDetailPage: React.FC = () => {
 
   const getAverageValue = (): number => {
     if (executions.length === 0) return 0;
-    const sum = executions.reduce((acc, exec) => acc + (exec.value || 0), 0);
-    return Math.round((sum / executions.length) * 100) / 100;
+    const validValues = executions.filter(exec => exec.value !== null && exec.value !== undefined);
+    if (validValues.length === 0) return 0;
+    const sum = validValues.reduce((acc, exec) => acc + (exec.value || 0), 0);
+    return Math.round((sum / validValues.length) * 100) / 100;
   };
 
   const handleExecute = async () => {
@@ -668,13 +790,17 @@ const IndicatorDetailPage: React.FC = () => {
                   </MetricCard>
                   <MetricCard>
                     <MetricValue>{getAverageValue()}</MetricValue>
-                    <MetricLabel>Avg Value</MetricLabel>
+                    <MetricLabel>
+                      {type === 'freshness' ? 'Avg Age (days)' : 'Avg Value'}
+                    </MetricLabel>
                   </MetricCard>
                   <MetricCard>
                     <MetricValue>
                       {executions[0]?.value?.toFixed(2) || 'N/A'}
                     </MetricValue>
-                    <MetricLabel>Latest Value</MetricLabel>
+                    <MetricLabel>
+                      {type === 'freshness' ? 'Latest Age (days)' : 'Latest Value'}
+                    </MetricLabel>
                   </MetricCard>
                 </MetricsGrid>
               </div>
@@ -698,12 +824,20 @@ const IndicatorDetailPage: React.FC = () => {
               <Form onSubmit={handleSave}>
                 <InputGroup>
                   <Label>Indicator Name</Label>
-                  <Input 
-                    value={name} 
-                    onChange={e => setName(e.target.value)} 
-                    placeholder="Enter indicator name"
-                    required 
-                  />
+                  {id ? (
+                    <ReadonlyInput 
+                      value={name} 
+                      readOnly
+                      placeholder="Indicator name (read-only)"
+                    />
+                  ) : (
+                    <Input 
+                      value={name} 
+                      onChange={e => setName(e.target.value)} 
+                      placeholder="Enter indicator name"
+                      required 
+                    />
+                  )}
                 </InputGroup>
 
                 <InputGroup>
@@ -925,50 +1059,64 @@ const IndicatorDetailPage: React.FC = () => {
               </EmptyState>
             ) : (
               <div>
-                {executions.map(exec => (
-                  <ExecutionCard key={exec.id} status={exec.passed ? 'success' : 'failed'}>
-                    <ExecutionHeader>
-                      <ExecutionStatus status={exec.passed ? 'success' : 'failed'}>
-                        {exec.passed ? 'PASSED' : 'FAILED'}
-                      </ExecutionStatus>
-                      <ExecutionTime>
-                        {new Date(exec.executedAt || exec.createdAt).toLocaleString()}
-                      </ExecutionTime>
-                    </ExecutionHeader>
-                    <ExecutionResult>
-                      <div style={{ marginBottom: '0.5rem' }}>
-                        <strong>Value:</strong> {exec.value?.toFixed(2) || 'N/A'}
-                        {indicator?.threshold && (
-                          <span style={{ marginLeft: '1rem', color: '#8892b0' }}>
-                            (Threshold: {indicator.threshold})
-                          </span>
-                        )}
-                      </div>
-                      {exec.error && (
-                        <div style={{ color: '#f87171', fontSize: '0.75rem' }}>
-                          <strong>Error:</strong> {exec.error}
+                <div style={{ marginBottom: '1rem', fontSize: '0.875rem', color: '#8892b0' }}>
+                  Last 10 executions (most recent first):
+                </div>
+                <ExecutionGrid>
+                  {executions.slice(0, 10).map((exec, index) => (
+                    <ExecutionGridItem 
+                      key={exec.id} 
+                      status={exec.passed ? 'passed' : 'failed'}
+                      title={`Execution ${index + 1}: ${exec.passed ? 'PASSED' : 'FAILED'}`}
+                    >
+                      {exec.passed ? '✓' : '✗'}
+                      <ExecutionTooltip>
+                        <div>Status: {exec.passed ? 'PASSED' : 'FAILED'}</div>
+                        <div>Value: {exec.value?.toFixed(2) || 'N/A'} days</div>
+                        <div>Time: {new Date(exec.executedAt || exec.createdAt).toLocaleString()}</div>
+                        {exec.error && <div>Error: {exec.error}</div>}
+                      </ExecutionTooltip>
+                    </ExecutionGridItem>
+                  ))}
+                </ExecutionGrid>
+                
+                {executions.length > 0 && (
+                  <div style={{ marginTop: '1.5rem' }}>
+                    <div style={{ fontSize: '0.875rem', color: '#8892b0', marginBottom: '0.5rem' }}>
+                      Latest Execution Details:
+                    </div>
+                    <ExecutionCard status={executions[0].passed ? 'success' : 'failed'}>
+                      <ExecutionHeader>
+                        <ExecutionStatus status={executions[0].passed ? 'success' : 'failed'}>
+                          {executions[0].passed ? 'PASSED' : 'FAILED'}
+                        </ExecutionStatus>
+                        <ExecutionTime>
+                          {new Date(executions[0].executedAt || executions[0].createdAt).toLocaleString()}
+                        </ExecutionTime>
+                      </ExecutionHeader>
+                      <ExecutionResult>
+                        <div style={{ marginBottom: '0.5rem' }}>
+                          <strong>Value:</strong> {executions[0].value?.toFixed(2) || 'N/A'} days old
+                          {indicator?.threshold && (
+                            <span style={{ marginLeft: '1rem', color: '#8892b0' }}>
+                              (Threshold: {indicator.threshold} days)
+                            </span>
+                          )}
                         </div>
-                      )}
-                      {exec.result && (
-                        <details style={{ marginTop: '0.5rem' }}>
-                          <summary style={{ cursor: 'pointer', color: '#22d3ee' }}>
-                            View raw result
-                          </summary>
-                          <pre style={{ 
-                            background: 'rgba(0, 0, 0, 0.5)', 
-                            padding: '0.5rem', 
-                            borderRadius: '0.25rem', 
-                            marginTop: '0.5rem',
-                            fontSize: '0.7rem',
-                            overflow: 'auto'
-                          }}>
-                            {JSON.stringify(exec.result, null, 2)}
-                          </pre>
-                        </details>
-                      )}
-                    </ExecutionResult>
-                  </ExecutionCard>
-                ))}
+                        {executions[0].error && (
+                          <div style={{ color: '#f87171', fontSize: '0.75rem' }}>
+                            <strong>Error:</strong> {executions[0].error}
+                          </div>
+                        )}
+                        <div style={{ fontSize: '0.75rem', color: '#8892b0', marginTop: '0.5rem' }}>
+                          {indicator?.type === 'freshness' && 
+                            `Freshness check: Data is ${executions[0].value?.toFixed(2) || 'unknown'} days old ${executions[0].passed ? '(Fresh ✓)' : '(Stale ✗)'}`
+                          }
+                        </div>
+                      </ExecutionResult>
+                    </ExecutionCard>
+                  </div>
+                )}
               </div>
             )}
           </GlassCard>

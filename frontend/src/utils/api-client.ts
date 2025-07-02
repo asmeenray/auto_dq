@@ -115,22 +115,80 @@ class ApiClient {
   }
 
   async getDashboardStats() {
-    // This would be a real API call in production
-    // For now, return basic stats based on user's data sources
-    const dataSources = await this.getDataSources();
-    return {
-      data: {
-        stats: {
-          totalDataSources: dataSources.data?.dataSources?.length || 0,
-          totalIndicators: 0,
-          totalExecutions: 0,
-          passedExecutions: 0,
-          failedExecutions: 0,
-          successRate: 0
-        },
-        recentExecutions: []
-      }
-    };
+    try {
+      // Get actual data from backend
+      const [dataSourcesResponse, indicatorsResponse] = await Promise.all([
+        this.getDataSources(),
+        this.getIndicators()
+      ]);
+
+      const dataSources = dataSourcesResponse.data?.dataSources || [];
+      const indicators = indicatorsResponse.data?.indicators || [];
+      
+      // Calculate stats from actual data
+      let totalExecutions = 0;
+      let passedExecutions = 0;
+      let failedExecutions = 0;
+      const recentExecutions: any[] = [];
+
+      // Collect all executions from all indicators
+      indicators.forEach((indicator: any) => {
+        if (indicator.executions) {
+          indicator.executions.forEach((execution: any) => {
+            totalExecutions++;
+            if (execution.passed) {
+              passedExecutions++;
+            } else {
+              failedExecutions++;
+            }
+            
+            // Add to recent executions with indicator info
+            recentExecutions.push({
+              ...execution,
+              indicator: {
+                id: indicator.id,
+                name: indicator.name
+              }
+            });
+          });
+        }
+      });
+
+      // Sort recent executions by date (most recent first) and take top 10
+      recentExecutions.sort((a, b) => new Date(b.executedAt).getTime() - new Date(a.executedAt).getTime());
+      const limitedRecentExecutions = recentExecutions.slice(0, 10);
+
+      const successRate = totalExecutions > 0 ? Math.round((passedExecutions / totalExecutions) * 100) : 0;
+
+      return {
+        data: {
+          stats: {
+            totalDataSources: dataSources.length,
+            totalIndicators: indicators.length,
+            totalExecutions,
+            passedExecutions,
+            failedExecutions,
+            successRate
+          },
+          recentExecutions: limitedRecentExecutions
+        }
+      };
+    } catch (error) {
+      console.error('Failed to calculate dashboard stats:', error);
+      return {
+        data: {
+          stats: {
+            totalDataSources: 0,
+            totalIndicators: 0,
+            totalExecutions: 0,
+            passedExecutions: 0,
+            failedExecutions: 0,
+            successRate: 0
+          },
+          recentExecutions: []
+        }
+      };
+    }
   }
 
   async getIndicators() {
@@ -154,6 +212,19 @@ class ApiClient {
 
   async getIndicatorDetails(indicatorId: string) {
     return this.request<{ indicator: any; executions: any[] }>(`/indicators/${indicatorId}`);
+  }
+
+  async deleteIndicator(indicatorId: string) {
+    return this.request<{ success: boolean; message: string }>(`/indicators/${indicatorId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async updateIndicator(indicatorId: string, data: any) {
+    return this.request<{ indicator: any }>(`/indicators/${indicatorId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   }
 }
 
@@ -281,6 +352,12 @@ export const getIndicatorDetails = async (id: string) => {
   const response = await apiClient.getIndicatorDetails(id);
   if (response.error) throw new Error(response.error);
   return response.data;
+};
+
+export const updateIndicator = async (id: string, data: any) => {
+  const response = await apiClient.updateIndicator(id, data);
+  if (response.error) throw new Error(response.error);
+  return response.data?.indicator;
 };
 
 export default apiClient;
