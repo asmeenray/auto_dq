@@ -210,14 +210,37 @@ export class AppDatabaseService {
   async createIndicator(data: {
     name: string
     description?: string
+    type: string
     query: string
+    targetQuery?: string
     threshold?: number
-    operator: string
+    operator?: string
     dataSourceId: string
     userId: string
   }) {
+    const indicatorData: any = {
+      name: data.name,
+      type: data.type,
+      query: data.query,
+      dataSourceId: data.dataSourceId,
+      userId: data.userId,
+    };
+
+    if (data.description !== undefined) {
+      indicatorData.description = data.description;
+    }
+    if (data.targetQuery !== undefined) {
+      indicatorData.targetQuery = data.targetQuery;
+    }
+    if (data.threshold !== undefined) {
+      indicatorData.threshold = data.threshold;
+    }
+    if (data.operator !== undefined) {
+      indicatorData.operator = data.operator;
+    }
+
     return await prisma.indicator.create({
-      data,
+      data: indicatorData,
       include: {
         dataSource: true,
         user: {

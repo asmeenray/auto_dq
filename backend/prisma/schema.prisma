@@ -61,9 +61,11 @@ model Indicator {
   id          String @id @default(cuid())
   name        String
   description String?
+  type        String // freshness, completeness, validity, anomaly
   query       String
+  targetQuery String? // For completeness indicators
   threshold   Float?
-  operator    String // gt, lt, eq, gte, lte
+  operator    String? // gt, lt, eq, gte, lte
 
   dataSourceId String
   dataSource   DataSource @relation(fields: [dataSourceId], references: [id])

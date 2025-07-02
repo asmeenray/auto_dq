@@ -8,6 +8,7 @@ import { useAppSelector } from './store/hooks'
 import LandingPage from './pages/LandingPage'
 import DashboardPage from './pages/DashboardPage'
 import AddDataSourcePage from './pages/AddDataSourcePage'
+import IndicatorDetailPage from './pages/IndicatorDetailPage'
 
 // App Component that uses Redux
 const AppContent: React.FC = () => {
@@ -39,6 +40,14 @@ const AppContent: React.FC = () => {
         <Route 
           path="/edit-data-source/:id" 
           element={<AddDataSourcePage />} 
+        />
+        <Route 
+          path="/indicator/new" 
+          element={<IndicatorDetailPage />} 
+        />
+        <Route 
+          path="/indicator/:id" 
+          element={<IndicatorDetailPage />} 
         />
       </Routes>
     </Router>

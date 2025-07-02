@@ -144,6 +144,17 @@ class ApiClient {
       method: 'POST',
     });
   }
+
+  async createIndicator(data: any) {
+    return this.request<{ indicator: any }>('/indicators', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getIndicatorDetails(indicatorId: string) {
+    return this.request<{ indicator: any; executions: any[] }>(`/indicators/${indicatorId}`);
+  }
 }
 
 // Types
@@ -246,4 +257,30 @@ export interface CreateUserInput {
 
 // Export singleton instance
 export const apiClient = new ApiClient();
+
+// Named exports for convenience
+export const getDataSources = async () => {
+  const response = await apiClient.getDataSources();
+  if (response.error) throw new Error(response.error);
+  return response.data?.dataSources || [];
+};
+
+export const createIndicator = async (data: any) => {
+  const response = await apiClient.createIndicator(data);
+  if (response.error) throw new Error(response.error);
+  return response.data?.indicator;
+};
+
+export const executeIndicator = async (id: string) => {
+  const response = await apiClient.executeIndicator(id);
+  if (response.error) throw new Error(response.error);
+  return response.data;
+};
+
+export const getIndicatorDetails = async (id: string) => {
+  const response = await apiClient.getIndicatorDetails(id);
+  if (response.error) throw new Error(response.error);
+  return response.data;
+};
+
 export default apiClient;

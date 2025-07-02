@@ -6,6 +6,9 @@ import jwt from 'jsonwebtoken';
 import { DatabaseConnector } from './services/DatabaseConnector';
 import { appDb } from './services/AppDatabaseService';
 
+// Import API routes
+import indicatorsRouter from './api/indicators';
+
 // Middleware for JWT authentication
 const authenticateToken = (req: any, res: any, next: any) => {
   const authHeader = req.headers['authorization'];
@@ -38,6 +41,9 @@ async function startServer() {
   app.get('/api/hello', (req, res) => {
     res.json({ message: 'Hello from autoDQ Backend!' });
   });
+
+  // Mount API routers
+  app.use('/api/indicators', indicatorsRouter);
 
   // Auth routes
   app.post('/api/auth/register', async (req, res) => {

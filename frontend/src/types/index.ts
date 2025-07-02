@@ -66,13 +66,17 @@ export interface CreateDataSourceInput {
   location?: string;
 }
 
+export type IndicatorType = 'freshness' | 'completeness' | 'validity' | 'anomaly';
+
 export interface Indicator {
   id: string;
   name: string;
   description?: string;
+  type: IndicatorType;
   query: string;
+  targetQuery?: string; // For completeness indicators
   threshold?: number;
-  operator: string;
+  operator?: string;
   dataSourceId: string;
   dataSource?: {
     id: string;
@@ -85,19 +89,21 @@ export interface Indicator {
     name: string;
     email: string;
   };
-  executions?: Execution[];
+  executions?: IndicatorExecution[];
   createdAt: string;
   updatedAt: string;
 }
 
-export interface CreateIndicatorInput {
-  name: string;
-  description?: string;
-  query: string;
-  threshold?: number;
-  operator: string;
-  dataSourceId: string;
-  userId: string;
+export interface IndicatorExecution {
+  id: string;
+  indicatorId: string;
+  value: number;
+  passed: boolean;
+  error?: string;
+  executedAt: string;
+  status: 'success' | 'failed' | 'pending';
+  result: any;
+  createdAt: string;
 }
 
 export interface Execution {

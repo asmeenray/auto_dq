@@ -837,7 +837,7 @@ const DashboardPage: React.FC = () => {
         <Section>
           <SectionHeader>
             <SectionTitle>Quality Indicators</SectionTitle>
-            <AddButton disabled={dataSources.length === 0}>
+            <AddButton disabled={dataSources.length === 0} onClick={() => navigate('/indicator/new')}>
               + Create Indicator
             </AddButton>
           </SectionHeader>
@@ -881,7 +881,7 @@ const DashboardPage: React.FC = () => {
                 {dataSources.length > 0 ? (
                   <>
                     <EmptyStateText>Create indicators to monitor data quality</EmptyStateText>
-                    <AddButton>Create Your First Indicator</AddButton>
+                    <AddButton onClick={() => navigate('/indicator/new')}>Create Your First Indicator</AddButton>
                   </>
                 ) : (
                   <EmptyStateText>
