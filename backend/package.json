@@ -7,7 +7,7 @@
     "dev": "nodemon --exec ts-node src/index.ts",
     "dev:single": "nodemon --exec ts-node src/index-single.ts",
     "build": "tsc",
-    "build:single": "tsc src/index-single.ts --outDir dist --resolveJsonModule --esModuleInterop",
+    "build:single": "cd ../frontend && npm install && npm run build && cd ../backend && tsc src/index-single.ts --outDir dist --resolveJsonModule --esModuleInterop",
     "start": "node dist/index.js",
     "start:single": "node dist/index-single.js",
     "start:prod": "NODE_ENV=production node dist/index.js",

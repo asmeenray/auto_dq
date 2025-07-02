@@ -26,8 +26,6 @@ async function startServer() {
   app.get('/api/hello', (req, res) => {
     res.json({ message: 'Hello from autoDQ Backend!' });
   });
-    res.json({ message: 'Hello from autoDQ Backend!' });
-  });
 
   // Data Sources routes
   app.get('/api/data-sources', async (req, res) => {
