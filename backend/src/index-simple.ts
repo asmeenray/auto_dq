@@ -146,11 +146,12 @@ async function startServer() {
   });
 
   // Start server
-  const PORT = process.env.API_PORT || 3001;
+  const PORT = process.env.PORT || process.env.API_PORT || 3001;
   app.listen(PORT, () => {
     console.log(`🚀 autoDQ Backend server is running on port ${PORT}`);
     console.log(`📡 Health check: http://localhost:${PORT}/health`);
     console.log(`🔗 API Base URL: http://localhost:${PORT}/api`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   });
 }
 
