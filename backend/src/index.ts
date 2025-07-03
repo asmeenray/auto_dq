@@ -56,10 +56,14 @@ async function startServer() {
         return res.status(400).json({ error: 'Email and password are required' });
       }
 
+      if (password.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+      }
+
       // Check if user already exists
       const existingUser = await appDb.getUserByEmail(email);
       if (existingUser) {
-        return res.status(409).json({ error: 'User already exists' });
+        return res.status(409).json({ error: 'An account with this email already exists. Please try logging in instead.' });
       }
 
       const user = await appDb.createUser({ email, name, password });
@@ -71,10 +75,17 @@ async function startServer() {
         { expiresIn: '7d' }
       );
 
+      console.log(`✅ User registered successfully: ${email}`);
       res.json({ user, token });
     } catch (error) {
-      console.error('Registration error:', error);
-      res.status(500).json({ error: 'Failed to register user' });
+      console.error('❌ Registration error:', error);
+      
+      // Handle database connection errors
+      if ((error as any).code === 'P1001') {
+        return res.status(503).json({ error: 'Database connection failed. Please try again later.' });
+      }
+      
+      res.status(500).json({ error: 'Failed to register user. Please try again.' });
     }
   });
 
@@ -88,7 +99,7 @@ async function startServer() {
 
       const user = await appDb.validateUser(email, password);
       if (!user) {
-        return res.status(401).json({ error: 'Invalid credentials' });
+        return res.status(401).json({ error: 'Invalid email or password. Please check your credentials and try again.' });
       }
 
       // Generate JWT token
@@ -98,10 +109,17 @@ async function startServer() {
         { expiresIn: '7d' }
       );
 
+      console.log(`✅ User logged in successfully: ${email}`);
       res.json({ user, token });
     } catch (error) {
-      console.error('Login error:', error);
-      res.status(500).json({ error: 'Failed to login' });
+      console.error('❌ Login error:', error);
+      
+      // Handle database connection errors
+      if ((error as any).code === 'P1001') {
+        return res.status(503).json({ error: 'Database connection failed. Please try again later.' });
+      }
+      
+      res.status(500).json({ error: 'Failed to login. Please try again.' });
     }
   });
 

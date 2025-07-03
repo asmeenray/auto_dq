@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import styled, { keyframes, createGlobalStyle } from 'styled-components'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
-import { loginUser, registerUser, clearAllAuthData } from '../store/slices/authSlice'
+import { loginUser, registerUser, clearAllAuthData, clearError } from '../store/slices/authSlice'
 
 // Global styles for animations
 const GlobalStyle = createGlobalStyle`
@@ -758,7 +758,24 @@ const LandingPage: React.FC = () => {
 
                   {error && (
                     <ErrorMessage>
-                      ERROR: {error}
+                      ⚠️ {error}
+                      <div style={{ marginTop: '8px' }}>
+                        <button 
+                          type="button"
+                          onClick={() => dispatch(clearError())}
+                          style={{ 
+                            background: 'none', 
+                            border: '1px solid #22d3ee', 
+                            color: '#22d3ee', 
+                            padding: '4px 8px', 
+                            fontSize: '12px', 
+                            cursor: 'pointer',
+                            borderRadius: '4px'
+                          }}
+                        >
+                          DISMISS
+                        </button>
+                      </div>
                     </ErrorMessage>
                   )}
 
