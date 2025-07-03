@@ -84,20 +84,20 @@ async function startServer() {
         return res.status(400).json({ error: 'Email and password are required' });
       }
 
-      const result = await appDb.loginUser({ email, password });
+      const user = await appDb.validateUser(email, password);
       
-      if (!result.success || !result.user) {
-        return res.status(401).json({ error: result.error || 'Invalid credentials' });
+      if (!user) {
+        return res.status(401).json({ error: 'Invalid credentials' });
       }
 
       // Generate JWT token
       const token = jwt.sign(
-        { userId: result.user.id, email: result.user.email },
+        { userId: user.id, email: user.email },
         process.env.JWT_SECRET || 'dev_jwt_secret',
         { expiresIn: '7d' }
       );
 
-      res.json({ user: result.user, token });
+      res.json({ user, token });
     } catch (error) {
       console.error('Login error:', error);
       res.status(500).json({ error: 'Failed to login' });
