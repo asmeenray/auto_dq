@@ -1,9 +1,27 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import jwt from 'jsonwebtoken';
 
 // Import services
 import { DatabaseConnector } from './services/DatabaseConnector';
+import { appDb } from './services/AppDatabaseService';
+
+// Middleware for JWT authentication
+const authenticateToken = (req: any, res: any, next: any) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.sendStatus(401);
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET || 'dev_jwt_secret', (err: any, user: any) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
+};
 
 async function startServer() {
   const app = express();
@@ -25,6 +43,65 @@ async function startServer() {
   // API Routes
   app.get('/api/hello', (req, res) => {
     res.json({ message: 'Hello from autoDQ Backend!' });
+  });
+
+  // Auth routes
+  app.post('/api/auth/register', async (req, res) => {
+    try {
+      const { email, name, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
+      }
+
+      // Check if user already exists
+      const existingUser = await appDb.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(409).json({ error: 'User already exists' });
+      }
+
+      const user = await appDb.createUser({ email, name, password });
+      
+      // Generate JWT token
+      const token = jwt.sign(
+        { userId: user.id, email: user.email },
+        process.env.JWT_SECRET || 'dev_jwt_secret',
+        { expiresIn: '7d' }
+      );
+
+      res.json({ user, token });
+    } catch (error) {
+      console.error('Registration error:', error);
+      res.status(500).json({ error: 'Failed to register user' });
+    }
+  });
+
+  app.post('/api/auth/login', async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
+      }
+
+      const result = await appDb.loginUser({ email, password });
+      
+      if (!result.success || !result.user) {
+        return res.status(401).json({ error: result.error || 'Invalid credentials' });
+      }
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { userId: result.user.id, email: result.user.email },
+        process.env.JWT_SECRET || 'dev_jwt_secret',
+        { expiresIn: '7d' }
+      );
+
+      res.json({ user: result.user, token });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ error: 'Failed to login' });
+    }
   });
 
   // Data Sources routes
