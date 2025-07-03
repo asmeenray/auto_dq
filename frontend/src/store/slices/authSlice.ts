@@ -6,8 +6,25 @@ interface ExtendedAuthState extends AuthState {
   error?: string;
 }
 
-// API base URL
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001/api';
+// API base URL - use same logic as api-client
+const getApiBaseUrl = () => {
+  const viteApiUrl = (import.meta as any).env?.VITE_API_URL;
+  
+  // If VITE_API_URL is explicitly set, use it
+  if (viteApiUrl) {
+    return viteApiUrl;
+  }
+  
+  // In production (when deployed), use relative URL
+  if ((import.meta as any).env?.PROD) {
+    return '/api';
+  }
+  
+  // Development fallback
+  return 'http://localhost:3001/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Async thunks for API calls
 export const loginUser = createAsyncThunk(

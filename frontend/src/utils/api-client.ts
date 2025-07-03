@@ -1,4 +1,22 @@
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001/api';
+// For single service deployment, use relative URLs in production
+const getApiBaseUrl = () => {
+  const viteApiUrl = (import.meta as any).env?.VITE_API_URL;
+  
+  // If VITE_API_URL is explicitly set, use it
+  if (viteApiUrl) {
+    return viteApiUrl;
+  }
+  
+  // In production (when deployed), use relative URL
+  if ((import.meta as any).env?.PROD) {
+    return '/api';
+  }
+  
+  // Development fallback
+  return 'http://localhost:3001/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export interface ApiResponse<T> {
   data?: T;
