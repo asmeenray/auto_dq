@@ -3,9 +3,11 @@ import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import { IndicatorExecutionService } from '../services/IndicatorExecutionService';
 import { DatabaseConnection } from '../services/DatabaseConnector';
+import { prisma } from '../services/DatabaseManager';
 
 const router = Router();
-const prisma = new PrismaClient();
+// Remove the local prisma instance
+// const prisma = new PrismaClient();
 
 // Middleware to extract user from JWT token
 const authenticateToken = (req: any, res: any, next: any) => {

@@ -5,6 +5,8 @@ import jwt from 'jsonwebtoken';
 // Import services
 import { DatabaseConnector } from './services/DatabaseConnector';
 import { appDb } from './services/AppDatabaseService';
+import { disconnectDatabase } from './services/DatabaseManager';
+import { connectionPoolManager } from './services/ConnectionPoolManager';
 
 // Import API routes
 import indicatorsRouter from './api/indicators';
@@ -296,12 +298,49 @@ async function startServer() {
   // Start server - explicitly use API_PORT from .env file, fallback to 3001
   const PORT = process.env.API_PORT || 3001;
   console.log(`🔧 Using port: ${PORT} (API_PORT: ${process.env.API_PORT}, PORT: ${process.env.PORT})`);
-  app.listen(PORT, () => {
+  
+  const server = app.listen(PORT, () => {
     console.log(`🚀 autoDQ Backend server is running on port ${PORT}`);
     console.log(`📡 Health check: http://localhost:${PORT}/health`);
     console.log(`🔗 API Base URL: http://localhost:${PORT}/api`);
     console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   });
+
+  // Graceful shutdown handling
+  const gracefulShutdown = async (signal: string) => {
+    console.log(`\n📡 Received ${signal}. Shutting down gracefully...`);
+    
+    // Stop accepting new connections
+    server.close(async () => {
+      console.log('🔌 HTTP server closed');
+      
+      try {
+        // Close external database connection pools
+        await connectionPoolManager.closeAllPools();
+        console.log('🔌 External database pools closed');
+        
+        // Disconnect from app database
+        await disconnectDatabase();
+        console.log('💾 App database disconnected');
+        
+        console.log('✅ Graceful shutdown completed');
+        process.exit(0);
+      } catch (error) {
+        console.error('❌ Error during shutdown:', error);
+        process.exit(1);
+      }
+    });
+
+    // Force shutdown after 10 seconds
+    setTimeout(() => {
+      console.log('⏰ Forced shutdown after timeout');
+      process.exit(1);
+    }, 10000);
+  };
+
+  // Listen for shutdown signals
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 }
 
 // Start the server

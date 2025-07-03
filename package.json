@@ -1,0 +1,29 @@
+{
+  "name": "autodq-monorepo",
+  "version": "1.0.0",
+  "description": "autoDQ - Automated Data Quality Suite",
+  "scripts": {
+    "build": "cd backend && npm install && npm run build",
+    "build:single": "cd backend && npm install && npm run build:single", 
+    "start": "cd backend && npm start",
+    "start:single": "cd backend && npm run start:single",
+    "install:backend": "cd backend && npm install",
+    "install:frontend": "cd frontend && npm install",
+    "install:all": "npm run install:backend && npm run install:frontend"
+  },
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/auto_dq.git"
+  },
+  "keywords": ["data-quality", "automation", "analytics"],
+  "author": "Your Name",
+  "license": "MIT"
+}

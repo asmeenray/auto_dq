@@ -40,6 +40,26 @@ Build Command: npm run build:single
 Start Command: npm run start:single
 ```
 
+### Option 3: Root-level deployment (if Render doesn't respect Root Directory)
+
+#### Backend Service from Root
+```
+Name: autodq-backend
+Environment: Node
+Root Directory: (leave empty)
+Build Command: cd backend && npm install && npm run build
+Start Command: cd backend && npm start
+```
+
+#### Single Service from Root
+```
+Name: autodq-app
+Environment: Node  
+Root Directory: (leave empty)
+Build Command: npm run build:single
+Start Command: npm run start:single
+```
+
 ## Environment Variables
 
 ### Frontend (.env)

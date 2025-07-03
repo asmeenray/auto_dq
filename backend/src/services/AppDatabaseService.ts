@@ -1,7 +1,9 @@
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+import { prisma } from './DatabaseManager'
 
-const prisma = new PrismaClient()
+// Remove the local prisma instance
+// const prisma = new PrismaClient()
 
 export interface CreateUserInput {
   email: string

@@ -1,5 +1,6 @@
 import { Pool, PoolClient } from 'pg'
 import * as snowflake from 'snowflake-sdk'
+import { connectionPoolManager } from './ConnectionPoolManager'
 
 export interface DatabaseConnection {
   type: 'redshift' | 'snowflake' | 'bigquery';
@@ -218,27 +219,14 @@ export class DatabaseConnector {
   }
 
   /**
-   * Execute query on Redshift
+   * Execute query on Redshift using connection pool
    */
   private static async executeRedshiftQuery(config: DatabaseConnection, query: string): Promise<any[]> {
-    let pool: Pool | null = null
     let client: PoolClient | null = null
 
     try {
-      pool = new Pool({
-        host: config.host,
-        port: config.port,
-        database: config.database,
-        user: config.username,
-        password: config.password,
-        max: 1,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 10000,
-        ssl: {
-          rejectUnauthorized: false
-        }
-      })
-
+      // Get pool from connection manager
+      const pool = await connectionPoolManager.getPostgresPool(config);
       client = await pool.connect()
       
       // Set schema if provided
@@ -250,11 +238,9 @@ export class DatabaseConnector {
       return result.rows || []
     } finally {
       if (client) {
-        client.release()
+        client.release() // Return connection to pool
       }
-      if (pool) {
-        await pool.end()
-      }
+      // Don't end the pool here - let it be managed by the pool manager
     }
   }
 
